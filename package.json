@@ -1,0 +1,30 @@
+{
+  "name": "web-programming-assignment-2017",
+  "version": "0.0.0",
+  "description": "Locally hosted nodejs web service for events",
+  "main": "node.js",
+  "dependencies": {
+    "body-parser": "^1.18.2",
+    "express": "^4.16.2",
+    "jquery": "^3.2.1",
+    "jsdom": "^11.5.1"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/JulianAppleyard/Web-Programming-Assignment-2017.git"
+  },
+  "keywords": [
+    "web",
+    "event"
+  ],
+  "author": "Julian Appleyard",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/JulianAppleyard/Web-Programming-Assignment-2017/issues"
+  },
+  "homepage": "https://github.com/JulianAppleyard/Web-Programming-Assignment-2017#readme"
+}
