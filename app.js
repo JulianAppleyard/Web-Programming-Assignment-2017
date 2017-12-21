@@ -15,6 +15,8 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true}));
 
 app.get('/events2017', function(req, resp) {
+
+	resp.writeHead(200, {'Content-Type': 'application/json'});
 	resp.end('Hello world');
 
 })
@@ -49,6 +51,10 @@ app.get('/events2017/admin.html', function(req, resp) {
 app.get('/events2017/index.html', function(req, resp){
 	resp.sendFile(__dirname + '/index.html');
 	console.log("Displaying index.html");
+})
+
+app.get('/events2017/style.css', function(req, resp) {
+	resp.sendFile(__dirname + '/style.css');
 })
 
 
@@ -111,7 +117,7 @@ app.get('/events2017/venues', function (req, resp) {
 	//	console.log(outputString);
 
 		var outputJSON = JSON.parse(outputString);
-		var formattedOutput = JSON.stringify(outputJSON, null, "\f");
+		var formattedOutput = JSON.stringify(outputJSON);
 		console.log(formattedOutput);
 		resp.end(formattedOutput);
 	});
@@ -130,7 +136,7 @@ Also error handling.
 Need to output as an array of JSON events
 If no search terms are provided, should return all events.
 If only date is provided, should return only events which match the date
-If date matches but not keyword, do we still output the event?
+If date matches but not keyword, don't output
 */
 app.get('/events2017/events/search', function (req, resp) {
 	var searchQuery = "";
@@ -139,9 +145,12 @@ app.get('/events2017/events/search', function (req, resp) {
 
 	searchQuery = req.query.search; //will assign value of undfined if url does not contain search query at all
 
-	if(searchQuery != undefined){
-		searchQuery = searchQuery.toLowerCase(); //convert to lowercase to ease comparison
+	if(searchQuery !== undefined){
+		var tmp = searchQuery.toLowerCase(); //convert to lowercase to ease comparison
+		searchQuery = tmp;
 	}
+
+	console.log("Keyword searched: " + searchQuery);
 
 	var timestamp = Date.parse(req.query.date) //attempts to convert input date string into a number of milliseconds
 	if (isNaN(timestamp)==false){ //timestamp will be a number if a valid Date format was inputted, making isNaN(timestamp) false
@@ -158,7 +167,7 @@ app.get('/events2017/events/search', function (req, resp) {
 
 		var data = JSON.parse(events);
 
-		if(searchQuery == "" && searchDate === ""){ //if no search terms/dates are provided, output all events
+		if(searchQuery === "" && searchDate === ""){ //if no search terms/dates are provided, output all events
 			console.log("No terms provided. Outputting all events.");
 			resp.end(events);
 			return;
@@ -198,13 +207,18 @@ app.get('/events2017/events/search', function (req, resp) {
 		}
 
 		if(outputArray.length === 0){ //is this really the best way to do this? Seems problematic
+			resp.writeHead(200, {'Content-Type': 'application/json'});
+			console.log("No events match this query.");
 			resp.end("No events match this query.");
+			return;
 		}
 
 			var jsonString = JSON.stringify(outputArray);
 			jsonString = '{"events":' + jsonString + "}";
 			var tempJSONObject = JSON.parse(jsonString);
-			jsonString = JSON.stringify(tempJSONObject, null, "\f");
+			jsonString = JSON.stringify(tempJSONObject);
+			console.log("Outputting JSON string");
+			resp.writeHead(200,  {'Content-Type': 'application/json'});
 			resp.end(jsonString);
 
 
@@ -237,21 +251,25 @@ app.get('/events2017/events/get/:event_id', function (req, resp) {
 
 			if(data.events[i].event_id === search_id){ //iterate through events to find matching id
 
-				console.log(data.events[i]);
+				//console.log(data.events[i]);
 				//convert javascript object to string in JSON format
 				var jsonString = JSON.stringify(data.events[i]);
 
 				jsonString = "{" + '"events":[' + jsonString + "]}";
 				var parsedJSON = JSON.parse(jsonString);
 
-				jsonString = JSON.stringify(parsedJSON, null, "\f");
+				jsonString = JSON.stringify(parsedJSON);
 
+				resp.writeHead(200, { 'Content-Type': 'application/json'});
 				resp.end(jsonString);
+				return;
 			}
 		}
 		var errorJSON = {};
 		errorJSON.error = "no such event";
-		resp.end(JSON.stringify(errorJSON, null, "\f"));
+
+		resp.writeHead(200, { 'Content-Type': 'application/json'});
+		resp.end(JSON.stringify(errorJSON));
 	});
 })
 
@@ -278,11 +296,21 @@ app.post('/events2017/venues/add', function (req, resp){
 		var parsedJSON = JSON.parse(data);
 
 		var notAuthorised = true;
+		var notAllParameters = true;
 
-		if(notAuthorised){ //send 400 error in case of error
+		if(notAuthorised){ //send 403 error in case of error
 				var errorJSON = {};
 				errorJSON.error = "not authorised, wrong token";
-				resp.end(JSON.stringify(errorJSON, null, "\f"));
+
+				resp.writeHead(200, { 'Content-Type': 'application/json'});
+				resp.end(JSON.stringify(errorJSON));
+		}
+		if(notAllParameters){//send 400 code in case of erro
+			var errorJSON = {};
+			errorJSON.error = "Venue not added. All required parameters must be provided.";
+
+			resp.writeHead(200, { 'Content-Type': 'application/json'});
+			resp.end(JSON.stringify(errorJSON));
 		}
 	});
 })

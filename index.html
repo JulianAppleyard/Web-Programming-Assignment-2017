@@ -1,23 +1,16 @@
 <!DOCTYPE html>
 
 <head>
-	<script src="http://ajax.googleapis.com/ajax/lbs/jquery/3.2.1/jquery.min.js">
+	<link rel="stylesheet" type="text/css" href="./style.css">
+	<script src="http://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js">
 	</script>
 	<meta charset="utf-8">
-	<title>"Test Title"</title>
+
+	<title>Event Finder</title>
+
 </head>
 
-
-<script>
-
-
-
-</script>
-
-
-
-
-<form action="./events/search" method="GET">
+<form id = "form" >
 
 	Keywords:<br>
 	<input type="text" name="search" id = "keywords"> </input><br>
@@ -29,6 +22,65 @@
 </form>
 
 
-<p id="results"></p>
+<table id="results">
+<tbody>
+	<tr>
+		<th  class = "first">Event Name</th>
+		<th  class = "first">Date</th>
+		<th  class = "first">Venue</th>
+	</tr>
+</tbody>
+
+
+</table>
+
+<script type = "text/javascript">
+
+
+$(document).ready(function(){
+	$('#form').submit(function(event){
+		event.preventDefault();
+
+		//here it should erase previous table if it exists
+		//should unhide
+		var keywords = document.getElementById('keywords').value;
+		var date = document.getElementById('date').value;
+
+		$.ajax({
+		//	console("sending ajax GET request");
+			url: "./events/search?",
+			type: "GET",
+			data: {search: keywords, date: date}, //sends query in the format ./events/search?search=keywords&date=date
+			contentType: "application/json; charset=utf-8",
+			dataType: "json",
+			statusCode: {
+				200: function(){
+					console.log("200: OK");
+				}
+			},
+			success: function(data){
+				console.log("Success");
+				var stringOfJSON = JSON.stringify(data);
+				var objectJSON = JSON.parse(stringOfJSON);
+				console.log("JSON string: " + stringOfJSON);
+
+				for(var i = 0; i < objectJSON.events.length; i++){
+					var date = new Date(objectJSON.events[i].date);
+					var newResult = "<tr><td>" + objectJSON.events[i].title +"</td><td>" + date.toDateString() +"</td><td>" + objectJSON.events[i].venue.name +"</td></tr>"; //new row in table for each result
+					$('#results').append(newResult);
+				}
+			},
+			error: function(result){
+				console.log(result);
+			}
+		});
+	});
+});
+</script>
+
+
+
+
+
 <body>
 </body>
