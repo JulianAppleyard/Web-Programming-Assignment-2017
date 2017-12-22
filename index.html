@@ -25,9 +25,9 @@
 <table id="results">
 <tbody>
 	<tr>
-		<th  class = "first">Event Name</th>
-		<th  class = "first">Date</th>
-		<th  class = "first">Venue</th>
+		<th>Event Name</th>
+		<th>Date</th>
+		<th>Venue</th>
 	</tr>
 </tbody>
 
@@ -64,12 +64,22 @@ $(document).ready(function(){
 				var objectJSON = JSON.parse(stringOfJSON);
 				console.log("JSON string: " + stringOfJSON);
 
-				for(var i = 0; i < objectJSON.events.length; i++){
-					var date = new Date(objectJSON.events[i].date);
-					var newResult = "<tr><td>" + objectJSON.events[i].title +"</td><td>" + date.toDateString() +"</td><td>" + objectJSON.events[i].venue.name +"</td></tr>"; //new row in table for each result
-					$('#results').append(newResult);
+				try{
+					for(var i = 0; i < objectJSON.events.length; i++){
+						var date = new Date(objectJSON.events[i].date);
+						var newResult = "<tr><td>" + objectJSON.events[i].title +"</td><td>" + date.toDateString() +"</td><td>" + objectJSON.events[i].venue.name +"</td></tr>"; //new row in table for each result
+
+						$('#results').append(newResult);
+					}
 				}
+
+				catch(err){
+					var errorString = objectJSON.error;
+					document.getElementById("results").innerHTML = errorString;
+				}
+
 			},
+
 			error: function(result){
 				console.log(result);
 			}

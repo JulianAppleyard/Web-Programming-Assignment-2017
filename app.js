@@ -46,16 +46,16 @@ app.get('/events2017/index.html', function(req, resp) {
 app.get('/events2017/admin.html', function(req, resp) {
 	resp.sendFile(__dirname + '/admin.html');
 	console.log("Displaying admin.html");
-})
+});
 
 app.get('/events2017/index.html', function(req, resp){
 	resp.sendFile(__dirname + '/index.html');
 	console.log("Displaying index.html");
-})
+});
 
 app.get('/events2017/style.css', function(req, resp) {
 	resp.sendFile(__dirname + '/style.css');
-})
+});
 
 
 /*
@@ -121,7 +121,7 @@ app.get('/events2017/venues', function (req, resp) {
 		console.log(formattedOutput);
 		resp.end(formattedOutput);
 	});
-})
+});
 
 
 
@@ -143,9 +143,11 @@ app.get('/events2017/events/search', function (req, resp) {
 	var outputArray = [];
 	var searchDate = "";
 
-	searchQuery = req.query.search; //will assign value of undfined if url does not contain search query at all
-
-	if(searchQuery !== undefined){
+	searchQuery = req.query.search; //will assign value of undefined if url does not contain search query at all
+	if(searchQuery === undefined){
+		searchQuery = "";
+	}
+	else{
 		var tmp = searchQuery.toLowerCase(); //convert to lowercase to ease comparison
 		searchQuery = tmp;
 	}
@@ -196,7 +198,7 @@ app.get('/events2017/events/search', function (req, resp) {
 
 
 
-			if(titleCheck || dateCheck){
+			if((searchQuery === "" && dateCheck) || titleCheck){
 				console.log("Found matching event...");
 				//add to output array
 				outputArray.push(data.events[i]);
@@ -208,8 +210,10 @@ app.get('/events2017/events/search', function (req, resp) {
 
 		if(outputArray.length === 0){ //is this really the best way to do this? Seems problematic
 			resp.writeHead(200, {'Content-Type': 'application/json'});
-			console.log("No events match this query.");
-			resp.end("No events match this query.");
+			console.log("no events match this query.");
+			var errorJSON = {};
+			errorJSON.error = "no such event";
+			resp.end(JSON.stringify(errorJSON));
 			return;
 		}
 
@@ -220,11 +224,12 @@ app.get('/events2017/events/search', function (req, resp) {
 			console.log("Outputting JSON string");
 			resp.writeHead(200,  {'Content-Type': 'application/json'});
 			resp.end(jsonString);
+			return;
 
 
 	});
 
-})
+});
 
 
 
@@ -277,54 +282,259 @@ app.get('/events2017/events/get/:event_id', function (req, resp) {
 app.post('/events2017/venues/add', function (req, resp){
 	var auth_token = req.body.auth_token;
 	var name = req.body.name;
-	var postcode = req.body.postcode; // these are optional
+	var postcode = req.body.postcode; // these are optional, should check if undefined
 	var town = req.body.town; //
 	var url = req.body.url; //
 	var icon = req.body.icon; //
 
-	var newVenu = {
-		"venue_id":{
-			"name" : name,
-			"postcode" : postcode,
-			"town" : town,
-			"url" : url,
-			"icon" : icon
-		}
+	var notAuthorised = true;
+	var notAllParameters = true;
+	var validToken = "concertina";
+
+
+	function length(x){ //function for determining the length of venues.json
+		return Object.keys(x).length;
 	}
+
+
+	if(name !== undefined && auth_token !== undefined){
+		notAllParameters = false;
+	}
+
+	if(postcode === undefined){
+		postcode = "";
+	}
+	if (town === undefined){
+		town = "";
+	}
+	if(url === undefined){
+		url = "";
+	}
+	if(icon === undefined){
+		icon = "";
+	}
+	if(auth_token === validToken){
+		notAuthorised = false;
+	}
+
+	if(notAuthorised){ //send 403 error in case of error
+			var errorJSON = {};
+			errorJSON.error = "Not authorised, wrong token";
+
+			resp.writeHead(401, { 'Content-Type': 'application/json'});
+			resp.end(JSON.stringify(errorJSON));
+			return;
+	}
+
+	if(notAllParameters){//send 400 code in case of this error
+		var errorJSON = {};
+		errorJSON.error = "Venue not added. A valid authentication token and a venue name must be provided.";
+
+		resp.writeHead(400, { 'Content-Type': 'application/json'});
+		resp.end(JSON.stringify(errorJSON));
+		return;
+	}
+
+
+
 	fs.readFile("./venues.json", 'utf8', function (err, data) {
 
+		var venue_id = "v_1"
+		var position = 0;
 		var parsedJSON = JSON.parse(data);
 
-		var notAuthorised = true;
-		var notAllParameters = true;
+		if(err) throw err;
 
-		if(notAuthorised){ //send 403 error in case of error
-				var errorJSON = {};
-				errorJSON.error = "not authorised, wrong token";
+//iterate through venues to find the end of the list and there the id of the event to be entered
 
-				resp.writeHead(200, { 'Content-Type': 'application/json'});
-				resp.end(JSON.stringify(errorJSON));
-		}
-		if(notAllParameters){//send 400 code in case of erro
-			var errorJSON = {};
-			errorJSON.error = "Venue not added. All required parameters must be provided.";
+		console.log(length(parsedJSON.venues));
 
-			resp.writeHead(200, { 'Content-Type': 'application/json'});
-			resp.end(JSON.stringify(errorJSON));
-		}
+
+		for(var i = 0; i < (2 + length(parsedJSON.venues)); i++) {
+			venue_id = 'v_' + i;
+			console.log(i);
+			}
+
+console.log(venue_id);
+		var newVenue ='{"' + venue_id + '":{"name":"' + name + '","postcode":"' + postcode + '","town":"' + town +  '","url":"' + url + '","icon":"' + icon + '"}}';
+		console.log(newVenue);
+
+		var newJSON = JSON.parse(newVenue);
+		parsedJSON.venues[venue_id] = newJSON[venue_id];
+		var postString = JSON.stringify(parsedJSON)
+
+		fs.writeFile("./venues.json", postString, (err) => {
+			if(err) throw err;
+			console.log("File written");
+		})
+
+		resp.writeHead(200, { 'Content-Type' : 'application/json'});
+		resp.end(postString);
+		return;
+
+
 	});
-})
+});
 
-/*
+
+/** Adding Events
+ * If the user enters an event_id which already exists, what should happen?
+ * What other errors could occur with poor/malformed input?
+ * If the user tries to add an event for a venue with doesn't exist
+ */
+
 app.post('/events2017/events/add', function (req, resp){
 	var auth_token = req.body.auth_token;
-	var event_id = req.body.event_id;
+	var event_id = req.body.event_id.toLowerCase(); //maintain event id standard
 	var title = req.body.title;
 	var venue_id = req.body.venue_id;
 	var date = req.body.date;
 	var url = req.body.url; //optional
 	var blurb = req.body.blurb; //optional
-})
-*/
+
+	var notAuthorised = true;
+	var notAllParameters = true;
+	var venueExists = false;
+	var validToken = "concertina";
+
+
+	function length(x){ //function for determining the length of venues.json
+		return Object.keys(x).length;
+	}
+
+//check if all required parameters have values. If any one does not, notAllParameters will be made false, causing a later if statement to output an error
+	if(title !== undefined && auth_token !== undefined && title !== undefined && venue_id !== undefined && date !== undefined){
+		notAllParameters = false;
+	}
+
+//If optional parameters are not provided, give them the value of the empty string
+	if(url === undefined){
+		url = "";
+	}
+	if(blurb === undefined){
+		blurb = "";
+	}
+
+	if(auth_token == validToken){
+		notAuthorised = false; //only if they have the correct token will they be allowed to proceed
+	}
+
+	if(notAuthorised){
+		var errorJSON = {};
+		errorJSON.error = "Not authorised, wrong token";
+
+		resp.writeHead(401, {'Content-Type': 'application/json'});
+		resp.end(JSON.stringify(errorJSON));
+		return;
+	}
+
+	if(notAllParameters){
+		var errorJSON = {};
+		errorJSON.error = "Event not added. A valid authentication token and all required parameters must be provided.";
+
+		resp.writeHead(400, {'Content-Type': 'application/json'});
+		resp.end(JSON.stringify(errorJSON));
+		return;
+	}
+
+
+	var dateObj = new Date(date);
+
+	fs.readFile("./events.json", 'utf8', function (err, data) {
+		if(err) throw err;
+
+		var parsedJSON = JSON.parse(data);
+
+
+ //if the user enters an event id which is already in use, return error and ask for resubmission
+		for(var i = 0; i < (parsedJSON.events.length); i++){
+
+			if(parsedJSON.events[i].event_id === event_id){
+				var errorJSON = {};
+				errorJSON.error = "Event id already in use. Please try again with a new event id.";
+
+				resp.writeHead(400, {'Content-Type': 'application/json'});
+				resp.end(JSON.stringify(errorJSON));
+				return;
+			}
+		}
+
+		fs.readFile("./venues.json", 'utf8', function (error, venues) {
+			if(error) throw error;
+			var parsedVenues = JSON.parse(venues);
+
+			//iterate through the venues.json to find if the venue exists, if it does, retrieve it as JSON object
+			for(var i = 0; i <(2 + length(parsedVenues.venues)); i++){
+				if(Object.keys(parsedVenues.venues)[i] == venue_id){ //finds the ith property of venues.json and compares to the input id
+
+					console.log(Object.keys(parsedVenues.venues)[i]);
+					console.log("Venue Exists! " + venue_id);
+					venueExists = true;
+
+					var venueObj = parsedVenues.venues[venue_id];
+					console.log(venueObj);
+				}
+			}
+
+			//if after the loop, the venue is not found, return an error
+			if(venueExists == false){
+				var errorJSON = {};
+				console.log("Venue does not exist");
+				errorJSON = {};
+				errorJSON.error = "Venue Id does not refer to an existing venue. Please check if the venue id is correct or add the new venue.";
+				resp.writeHead(400, {'Content-Type': 'application/json'});
+				resp.end(JSON.stringify(errorJSON));
+				return;
+			}
+
+			//Now that all of these checks are over, can proceed with construction of date and JSON objects
+			var dateObj = new Date(date);
+			var dateISO = dateObj.toISOString();
+
+			var postJSON = {
+			"event_id": "",
+			"title": "",
+			"blurb": "",
+			"date": "",
+			"url": "",
+			"venue": {}
+			}
+			postJSON.event_id = event_id;
+			postJSON.title = title;
+			postJSON.blurb = blurb;
+			postJSON.date = date;
+			postJSON.url = url;
+			postJSON.venue = venueObj;
+			postJSON.venue.venue_id = venue_id;
+
+
+			//now need to add to events list
+			parsedJSON.events.push(postJSON);
+
+			//console.log(JSON.stringify(postJSON));
+
+			var stringJSON = JSON.stringify(parsedJSON);
+
+			//overwrite events.json with the new JSON string
+			fs.writeFile("./events.json", stringJSON, (err) => {
+				if(err) throw err;
+				console.log("File written");
+			});
+
+			resp.writeHead(200, {'Content-Type':'application/json'});
+			resp.end(stringJSON);
+
+			return;
+
+
+		});
+
+
+
+	});
+
+
+});
+
 app.listen(8090, "127.0.0.1");
 console.log('Server is listening at 127.0.0.1:8090');
