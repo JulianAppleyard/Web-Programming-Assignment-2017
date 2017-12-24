@@ -1,19 +1,28 @@
 /**
-	A nodejs web service for events.
+	A nodejs web service for searching and adding events and venues using expressjs
 	Author: Julian Appleyard
-Version 0.2.0
+Version 0.3.0
 Really needs error handling
 Need to return HTTP status codes
+make a 404 page
+utilize truthy/falsey to streamline code
  */
-var auth_token = "concertina";
+
+
 var express = require('express');
 var app = express();
+
+var request = require('request');
 var http = require('http');
 var fs = require('fs');
 var bodyParser = require('body-parser');
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true}));
 
+
+var auth_token = "concertina";
+
+//Make this have links to login page and index.html
 app.get('/events2017', function(req, resp) {
 
 	resp.writeHead(200, {'Content-Type': 'application/json'});
@@ -243,6 +252,14 @@ one event object instead of the object itself
 */
 app.get('/events2017/events/get/:event_id', function (req, resp) {
 	var search_id = req.params.event_id;
+
+	if(search_id === undefined){
+		var errorJSON = {};
+		errorJSON.error = "no such event";
+		resp.writeHead(400, { 'Content-Type' : 'application/json'});
+		resp.end(JSON.stringify(errorJSON));
+	}
+
 	console.log("Reading events.json");
 	fs.readFile("./events.json", 'utf8', function(err, events){
 		if(err) throw err;
@@ -252,7 +269,7 @@ app.get('/events2017/events/get/:event_id', function (req, resp) {
 
 		for(var i = 0; i < data.events.length; i++)
 		{
-			console.log("Checking event #" + i);
+			console.log("Checking event #" + (i+1));
 
 			if(data.events[i].event_id === search_id){ //iterate through events to find matching id
 
@@ -273,7 +290,7 @@ app.get('/events2017/events/get/:event_id', function (req, resp) {
 		var errorJSON = {};
 		errorJSON.error = "no such event";
 
-		resp.writeHead(200, { 'Content-Type': 'application/json'});
+		resp.writeHead(400, { 'Content-Type': 'application/json'});
 		resp.end(JSON.stringify(errorJSON));
 	});
 })
@@ -313,9 +330,13 @@ app.post('/events2017/venues/add', function (req, resp){
 	if(icon === undefined){
 		icon = "";
 	}
+
+	)
 	if(auth_token === validToken){
 		notAuthorised = false;
 	}
+
+
 
 	if(notAuthorised){ //send 403 error in case of error
 			var errorJSON = {};
@@ -536,5 +557,6 @@ app.post('/events2017/events/add', function (req, resp){
 
 });
 
-app.listen(8090, "127.0.0.1");
-console.log('Server is listening at 127.0.0.1:8090');
+app.listen(8090, "127.0.0.1", function() {
+	console.log('Server is listening at 127.0.0.1:8090');
+}

@@ -68,7 +68,6 @@ $(document).ready(function(){
 					for(var i = 0; i < objectJSON.events.length; i++){
 						var date = new Date(objectJSON.events[i].date);
 						var newResult = "<tr><td>" + objectJSON.events[i].title +"</td><td>" + date.toDateString() +"</td><td>" + objectJSON.events[i].venue.name +"</td></tr>"; //new row in table for each result
-
 						$('#results').append(newResult);
 					}
 				}
