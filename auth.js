@@ -114,9 +114,16 @@ app.post("/login", function(req, resp) {
 
 //takes an auth_token and an IP address and returns whether or not the token is valid
 // the auth_token "concertina" should be valid for all atimes for IP addresses 129.234.xxx.yyy
-app.get("/secret", passport.authenticate(['jwt', 'tokenBackDoor'], { session: false}), function(req, resp){
-    resp.json({message : "Success! You cannot see this without a token"});
-
+app.get("/events2017/authenticate", passport.authenticate(['jwt', 'tokenBackDoor'], { session: false}), function(req, resp){
+    console.log("Request authenticated");
+    var jsonSent ={};
+    jsonSent.message = "Success! You cannot see this without a token!";
+    jsonSent.validToken = true;
+    resp.writeHead(200, {'validToken': true});
+    resp.end();
+    //resp.json(jsonSent);
+    //resp.end(JSON.stringify(jsonSent));
+    return;
 });
 
 
@@ -130,6 +137,6 @@ app.get("/secretDebug",
   });
 */
 
-app.listen(8090, "127.0.0.1", function(){
+app.listen(9000, "127.0.0.1", function(){
   console.log("Express running");
 });

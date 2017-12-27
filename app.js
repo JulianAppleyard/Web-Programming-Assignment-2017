@@ -1,12 +1,15 @@
 /**
 	A nodejs web service for searching and adding events and venues using expressjs
 	Author: Julian Appleyard
-Version 0.3.0
-Really needs error handling
-Need to return HTTP status codes
-make a 404 page
-utilize truthy/falsey to streamline code
- */
+* Version 0.4.3
+POST requests now make GET reuqests to authentication service
+
+* TO DO
+// Should I look at better error handling?
+// Is this returning HTTP status codes whenever possible?
+// Make a 404 page that badly formatted url requests are forwarded to
+
+ **/
 
 
 var express = require('express');
@@ -29,29 +32,10 @@ app.get('/events2017', function(req, resp) {
 	resp.end('Hello world');
 
 })
-/*
-app.get('/events2017/index.html', function(req, resp) {
-	fs.readFile('./index.html', function(err, html){
-		if(err){
-			throw err;
-		}
 
-		http.createServer(function(req, resp){
-			resp.writeHead(200, {"Content-Type": "text/html"});
-			resp.write(html);
-			resp.end();
 
-		});
-	});
-
-	resp.sendFile(__dirname + '/index.html');
-	console.log("Displaying index.html");
-	resp.writeHead(200, {'Content-Type' : 'text/html'});
-	resp.write()
-
-})
-*/
-
+// Handling GET requests of web pages
+//
 app.get('/events2017/admin.html', function(req, resp) {
 	resp.sendFile(__dirname + '/admin.html');
 	console.log("Displaying admin.html");
@@ -153,6 +137,7 @@ app.get('/events2017/events/search', function (req, resp) {
 	var searchDate = "";
 
 	searchQuery = req.query.search; //will assign value of undefined if url does not contain search query at all
+
 	if(searchQuery === undefined){
 		searchQuery = "";
 	}
@@ -253,7 +238,7 @@ one event object instead of the object itself
 app.get('/events2017/events/get/:event_id', function (req, resp) {
 	var search_id = req.params.event_id;
 
-	if(search_id === undefined){
+	if(!search_id){
 		var errorJSON = {};
 		errorJSON.error = "no such event";
 		resp.writeHead(400, { 'Content-Type' : 'application/json'});
@@ -293,10 +278,26 @@ app.get('/events2017/events/get/:event_id', function (req, resp) {
 		resp.writeHead(400, { 'Content-Type': 'application/json'});
 		resp.end(JSON.stringify(errorJSON));
 	});
-})
+});
 
+// ADDING VENUES
+/** When a POST request at '127.0.0.1:8090/events2018/venues/add', this will handle the request.
+* 	This request should be to add a venue to venues.json
+*
+*
+*
+TO DO
+// Remove validToken as valid tokens are generated and compared in the authentication service
+// What does this need to return besides status code?
+// How does this scale with a large number of events? Does the ID system maintain functionality?
+//
+
+**/
 
 app.post('/events2017/venues/add', function (req, resp){
+
+	//Pass POST request parameters into the function
+	//
 	var auth_token = req.body.auth_token;
 	var name = req.body.name;
 	var postcode = req.body.postcode; // these are optional, should check if undefined
@@ -304,49 +305,42 @@ app.post('/events2017/venues/add', function (req, resp){
 	var url = req.body.url; //
 	var icon = req.body.icon; //
 
+
 	var notAuthorised = true;
 	var notAllParameters = true;
+
+//TO DO
+// remove this?
+//
 	var validToken = "concertina";
 
 
-	function length(x){ //function for determining the length of venues.json
-		return Object.keys(x).length;
-	}
-
-
-	if(name !== undefined && auth_token !== undefined){
+// Check for required parameters.
+// If either are false (likely undefined or empty string), notAllParameters will remain true
+//
+	if(name && auth_token){
 		notAllParameters = false;
 	}
 
-	if(postcode === undefined){
+//Assign optional parameters empty string value if they are undefined or otherwise falsey
+//
+	if(!postcode){
 		postcode = "";
 	}
-	if (town === undefined){
+	if (!town){
 		town = "";
 	}
-	if(url === undefined){
+	if(!url){
 		url = "";
 	}
-	if(icon === undefined){
+	if(!icon){
 		icon = "";
 	}
 
-	)
-	if(auth_token === validToken){
-		notAuthorised = false;
-	}
 
 
-
-	if(notAuthorised){ //send 403 error in case of error
-			var errorJSON = {};
-			errorJSON.error = "Not authorised, wrong token";
-
-			resp.writeHead(401, { 'Content-Type': 'application/json'});
-			resp.end(JSON.stringify(errorJSON));
-			return;
-	}
-
+//If any required parameter is missing, send an error in JSON and a 'Bad Request'status code in the header
+//
 	if(notAllParameters){//send 400 code in case of this error
 		var errorJSON = {};
 		errorJSON.error = "Venue not added. A valid authentication token and a venue name must be provided.";
@@ -357,33 +351,96 @@ app.post('/events2017/venues/add', function (req, resp){
 	}
 
 
+//Make a GET request to the seperate authentication service (auth.js)
+//
+	var options = {
+		url: "http://127.0.0.1:9000/events2017/authenticate",
+		headers: {
+			'Authorization' : auth_token //authentication service is configured to receive token through header
+		}
 
+	};
+
+
+
+// The request itself is configured to receive a response from the service of "true" stored in the header
+//
+	request.get(options, function(err, resp){
+		console.log("Attempting to connect to authentication service...");
+		if(err) throw err;
+
+		console.log("Using token: "+ auth_token);
+
+		console.log(resp.headers.validtoken === "true");
+
+		if(resp.headers.validtoken == "true"){
+			notAuthorised = false;
+		}
+
+	// If this main service receives any other response besides "true", it will return an error message
+	// in JSON with an HTTP status code in the header 401 'Unauthorized'
+	//
+		if(notAuthorised){
+				var errorJSON = {};
+				console.log("Token: "+ auth_token +" is incorrect");
+				errorJSON.error = "Not authorised, wrong token";
+
+				resp.writeHead(401, { 'Content-Type': 'application/json'});
+				resp.end(JSON.stringify(errorJSON));
+				return;
+		}
+
+	});
+
+
+
+// Read venues.json and find the venue ID which should be assigned to the new venue when it is added
+// Should it check to see if the venue already exists? Would it check by name alone? Maybe would prompt user
+// with similar results to avoid users inputting multiple of the same venue (mutliple of the same venue would end up with the same id)
+//
 	fs.readFile("./venues.json", 'utf8', function (err, data) {
+		if(err) throw err;
 
 		var venue_id = "v_1"
 		var position = 0;
-		var parsedJSON = JSON.parse(data);
-
-		if(err) throw err;
-
-//iterate through venues to find the end of the list and there the id of the event to be entered
-
-		console.log(length(parsedJSON.venues));
+		var parsedListJSON = JSON.parse(data);
 
 
-		for(var i = 0; i < (2 + length(parsedJSON.venues)); i++) {
-			venue_id = 'v_' + i;
+		// Function for determining the length of venues.json
+		//
+			function length(x){
+				return Object.keys(x).length;
+			}
+
+		console.log(length(parsedListJSON.venues));
+
+		// This loop iterates through venues.json (after converted to a javascript object) to find the final venue id
+		// It then assigns the new venue the next ID in sequence (eg final: v_2, next: v_3).
+		// This assumes the venues are stored in sequence and that there are no holes in the list.
+		//
+		for(var i = 0; i < (1 + length(parsedListJSON.venues)); i++) {
+			venue_id = 'v_' + (i + 1);
 			console.log(i);
 			}
 
-console.log(venue_id);
+		console.log(venue_id);
+
+		// Create a string in JSON for new venue
+		//
 		var newVenue ='{"' + venue_id + '":{"name":"' + name + '","postcode":"' + postcode + '","town":"' + town +  '","url":"' + url + '","icon":"' + icon + '"}}';
 		console.log(newVenue);
 
-		var newJSON = JSON.parse(newVenue);
-		parsedJSON.venues[venue_id] = newJSON[venue_id];
-		var postString = JSON.stringify(parsedJSON)
+		// Convert string to javascript objects
+		//
+		var newVenueJSON = JSON.parse(newVenue);
 
+		// Add new venue to list of venues
+		//
+		parsedListJSON.venues[venue_id] = newVenueJSON[venue_id];
+		var postString = JSON.stringify(parsedListJSON)
+
+		// Overwrite the list of venues to venues.json
+		//
 		fs.writeFile("./venues.json", postString, (err) => {
 			if(err) throw err;
 			console.log("File written");
@@ -404,9 +461,25 @@ console.log(venue_id);
  * If the user tries to add an event for a venue with doesn't exist
  */
 
+//ADDING EVENTS
+/**	When  POST reuqest at 127.0.0.1:8090 'http://127.0.0.1:8090/events2017/events/add'.
+*		This request should be to add an event to events.json
+*
+*
+*	Note that the venue ID is a required parameter
+* and a venue with that ID must exist in venues.json for an event to be added at that venue.
+
+TO DO
+// How does this scale with large number of events/venues? Does the ID system maintain functionality?
+//
+**/
+
 app.post('/events2017/events/add', function (req, resp){
+
+	// Pass POST request parameters into the function
+	//
 	var auth_token = req.body.auth_token;
-	var event_id = req.body.event_id.toLowerCase(); //maintain event id standard
+	var event_id = req.body.event_id.toLowerCase(); //maintain event ID standard by
 	var title = req.body.title;
 	var venue_id = req.body.venue_id;
 	var date = req.body.date;
@@ -423,32 +496,24 @@ app.post('/events2017/events/add', function (req, resp){
 		return Object.keys(x).length;
 	}
 
-//check if all required parameters have values. If any one does not, notAllParameters will be made false, causing a later if statement to output an error
-	if(title !== undefined && auth_token !== undefined && title !== undefined && venue_id !== undefined && date !== undefined){
+// Check if ALL required parameters have values.
+// If any single required parameter is false (likely undefined or empty string), notAllParameters will remain true
+//
+	if(title && auth_token && title && venue_id && date){
 		notAllParameters = false;
 	}
 
-//If optional parameters are not provided, give them the value of the empty string
-	if(url === undefined){
+// Assign optional parameters empty string value if they are undefined or otherwise falsey
+//
+	if(!url){
 		url = "";
 	}
-	if(blurb === undefined){
+	if(!blurb){
 		blurb = "";
 	}
 
-	if(auth_token == validToken){
-		notAuthorised = false; //only if they have the correct token will they be allowed to proceed
-	}
-
-	if(notAuthorised){
-		var errorJSON = {};
-		errorJSON.error = "Not authorised, wrong token";
-
-		resp.writeHead(401, {'Content-Type': 'application/json'});
-		resp.end(JSON.stringify(errorJSON));
-		return;
-	}
-
+// If any required parameter is missing, send an error in JSON and a 'Bad Request' status code in the headers
+//
 	if(notAllParameters){
 		var errorJSON = {};
 		errorJSON.error = "Event not added. A valid authentication token and all required parameters must be provided.";
@@ -459,20 +524,63 @@ app.post('/events2017/events/add', function (req, resp){
 	}
 
 
-	var dateObj = new Date(date);
+	//Make a GET request to the seperate authenticatation (auth.js)
+	//
+	var options = {
+		url:"http://127.0.0.1:9000/events2017/authenticate",
+		headers: {
+			'Authorization' : auth_token //authentication service is configured to receive token through header
+		}
+	};
 
+
+// The request itself is configured to receive a response from the service of "true" stored in the header
+//
+	request.get(option, function(err, resp){
+		console.log("Attmepting to connect to authentication service...");
+
+		if(err) throw err;
+
+		console.log("Using token: " + auth_token);
+
+		console.log(resp.headers.validtoken === "true");
+		if(resp.headers.validtoken === "true"){
+			notAuthorised = false;
+			console.log(notAuthorised);
+		}
+
+	// If this main service receives any other response besides "true", it will return an error message
+	// in JSON with an HTTP status code in the header 401 'Unauthorized'
+	//
+		if(notAuthorised){
+			var errJSON = {};
+			console.log("Token: " + auth_token + "is incorrect");
+			errorJSON.error = "Not authorised, wrong token";
+
+			resp.writeHead(401, { 'Content-Type': 'application/json'});
+			resp.end(JSON.stringify(errorJSON));
+			return;
+		}
+
+	});
+
+// Read events.json
+//
+//
 	fs.readFile("./events.json", 'utf8', function (err, data) {
 		if(err) throw err;
 
 		var parsedJSON = JSON.parse(data);
 
 
- //if the user enters an event id which is already in use, return error and ask for resubmission
+ // If the user enters an event ID which is already in use, return 400 'Bad Request ' and
+ // an error msessage asking for a resubmission.
+ //
 		for(var i = 0; i < (parsedJSON.events.length); i++){
 
 			if(parsedJSON.events[i].event_id === event_id){
 				var errorJSON = {};
-				errorJSON.error = "Event id already in use. Please try again with a new event id.";
+				errorJSON.error = "Event ID already in use. Please try again with a new event id.";
 
 				resp.writeHead(400, {'Content-Type': 'application/json'});
 				resp.end(JSON.stringify(errorJSON));
@@ -480,11 +588,16 @@ app.post('/events2017/events/add', function (req, resp){
 			}
 		}
 
+// Reade venues.json to find if the venue ID given in the request is associated with an existing venue
+//
 		fs.readFile("./venues.json", 'utf8', function (error, venues) {
 			if(error) throw error;
+
 			var parsedVenues = JSON.parse(venues);
 
-			//iterate through the venues.json to find if the venue exists, if it does, retrieve it as JSON object
+			// Iterate through the venues.json to find if the venue exists, if it does, retrieve it as JSON object
+			// This loop finds the ith property of venues.json and compares it to the inputted venue ID
+			//
 			for(var i = 0; i <(2 + length(parsedVenues.venues)); i++){
 				if(Object.keys(parsedVenues.venues)[i] == venue_id){ //finds the ith property of venues.json and compares to the input id
 
@@ -497,7 +610,9 @@ app.post('/events2017/events/add', function (req, resp){
 				}
 			}
 
-			//if after the loop, the venue is not found, return an error
+			// If after the loop, the venue ID is not found in venues.json,
+			// return an error message saying this with the status code 400 'Bad Request'
+			//
 			if(venueExists == false){
 				var errorJSON = {};
 				console.log("Venue does not exist");
@@ -508,10 +623,13 @@ app.post('/events2017/events/add', function (req, resp){
 				return;
 			}
 
-			//Now that all of these checks are over, can proceed with construction of date and JSON objects
+			// Construct a javascript Date object and convert that date to ISO for later comparison
+			//
 			var dateObj = new Date(date);
 			var dateISO = dateObj.toISOString();
 
+			// Construct a javascript object with the data provided in the request
+			//
 			var postJSON = {
 			"event_id": "",
 			"title": "",
@@ -529,16 +647,17 @@ app.post('/events2017/events/add', function (req, resp){
 			postJSON.venue.venue_id = venue_id;
 
 
-			//now need to add to events list
+			// Add the new event object to the array of event objects from events.json
+			//
 			parsedJSON.events.push(postJSON);
-
-			//console.log(JSON.stringify(postJSON));
 
 			var stringJSON = JSON.stringify(parsedJSON);
 
-			//overwrite events.json with the new JSON string
+			// Overwrite events.json with the new JSON string
+			//
 			fs.writeFile("./events.json", stringJSON, (err) => {
 				if(err) throw err;
+
 				console.log("File written");
 			});
 
@@ -557,6 +676,9 @@ app.post('/events2017/events/add', function (req, resp){
 
 });
 
+// Starting the server
+// Should this be at the top?
+//
 app.listen(8090, "127.0.0.1", function() {
 	console.log('Server is listening at 127.0.0.1:8090');
-}
+});
