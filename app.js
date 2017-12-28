@@ -1,6 +1,8 @@
 /**
 	A nodejs web service for searching and adding events and venues using expressjs
-	Author: Julian Appleyard
+	This web service requires another webservice for authenticating adding events and venues
+
+* Author: Julian Appleyard
 * Version 0.4.3
 POST requests now make GET reuqests to authentication service
 
@@ -8,7 +10,9 @@ POST requests now make GET reuqests to authentication service
 // Should I look at better error handling?
 // Is this returning HTTP status codes whenever possible?
 // Make a 404 page that badly formatted url requests are forwarded to
-
+// Document libraries/ npm modules(?) that are used
+// How should login page be handled in this service?
+///
  **/
 
 
@@ -16,26 +20,37 @@ var express = require('express');
 var app = express();
 
 var request = require('request');
+
 var http = require('http');
 var fs = require('fs');
+
 var bodyParser = require('body-parser');
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true}));
 
 
-var auth_token = "concertina";
 
-//Make this have links to login page and index.html
+// Make this have links to login page and index.html
+//
+app.get('/events2017/404', function(req, resp) {
+
+	resp.sendFile(__dirname + '/404.html');
+	console.log("Displaying 404 page");
+});
 app.get('/events2017', function(req, resp) {
-
 	resp.writeHead(200, {'Content-Type': 'application/json'});
 	resp.end('Hello world');
-
-})
+});
 
 
 // Handling GET requests of web pages
 //
+
+app.get('/events2017/login', function(req, resp){
+	resp.sendFile(__dirname + '/login.html');
+	console.log("Displaying login.html");
+});
+
 app.get('/events2017/admin.html', function(req, resp) {
 	resp.sendFile(__dirname + '/admin.html');
 	console.log("Displaying admin.html");
@@ -277,6 +292,7 @@ app.get('/events2017/events/get/:event_id', function (req, resp) {
 
 		resp.writeHead(400, { 'Content-Type': 'application/json'});
 		resp.end(JSON.stringify(errorJSON));
+		return;
 	});
 });
 

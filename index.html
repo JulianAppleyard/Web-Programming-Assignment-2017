@@ -1,95 +1,131 @@
 <!DOCTYPE html>
-
+<html lang="en">
 <head>
-	<link rel="stylesheet" type="text/css" href="./style.css">
-	<script src="http://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js">
-	</script>
+	<!-- Meta Tags -->
 	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+	<!-- Boostrap core CSS -->
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
 
 	<title>Event Finder</title>
-
 </head>
-
-<form id = "form" >
-
-	Keywords:<br>
-	<input type="text" name="search" id = "keywords"> </input><br>
-
-	Date:<br>
-	<input type="date" name="date" id = "date"></input>
-
-	<input type="submit" value="Search" id="Search"></input>
-</form>
-
-
-<table id="results">
-<tbody>
-	<tr>
-		<th>Event Name</th>
-		<th>Date</th>
-		<th>Venue</th>
-	</tr>
-</tbody>
-
-
-</table>
-
-<script type = "text/javascript">
-
-
-$(document).ready(function(){
-	$('#form').submit(function(event){
-		event.preventDefault();
-
-		//here it should erase previous table if it exists
-		//should unhide
-		var keywords = document.getElementById('keywords').value;
-		var date = document.getElementById('date').value;
-
-		$.ajax({
-		//	console("sending ajax GET request");
-			url: "./events/search?",
-			type: "GET",
-			data: {search: keywords, date: date}, //sends query in the format ./events/search?search=keywords&date=date
-			contentType: "application/json; charset=utf-8",
-			dataType: "json",
-			statusCode: {
-				200: function(){
-					console.log("200: OK");
-				}
-			},
-			success: function(data){
-				console.log("Success");
-				var stringOfJSON = JSON.stringify(data);
-				var objectJSON = JSON.parse(stringOfJSON);
-				console.log("JSON string: " + stringOfJSON);
-
-				try{
-					for(var i = 0; i < objectJSON.events.length; i++){
-						var date = new Date(objectJSON.events[i].date);
-						var newResult = "<tr><td>" + objectJSON.events[i].title +"</td><td>" + date.toDateString() +"</td><td>" + objectJSON.events[i].venue.name +"</td></tr>"; //new row in table for each result
-						$('#results').append(newResult);
-					}
-				}
-
-				catch(err){
-					var errorString = objectJSON.error;
-					document.getElementById("results").innerHTML = errorString;
-				}
-
-			},
-
-			error: function(result){
-				console.log(result);
-			}
-		});
-	});
-});
-</script>
-
-
-
-
-
 <body>
+	<!-- Bootstrap collapsable nav bar-->
+	<nav class="navbar navbar-inverse">
+		<div class="container-fluid">
+			<div class="navbar-header">
+				<button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#myNavbar">
+					<span class="icon-bar"></span>
+					<span class="icon-bar"></span>
+					<span class="icon-bar"></span>
+				</button>
+				<a class="navbar-brand" href="http://127.0.0.1:8090/events2017">Events</a>
+			</div>
+			<div class="collapse navbar-collapse" id = "myNavbar">
+				<ul class="nav navbar-nav">
+					<li><a href="http://127.0.0.1:8090/events2017/index.html">Index</a></li>
+					<li><a href="http://127.0.0.1:8090/events2017/admin.html">Admin</a></li>
+				</ul>
+				<ul class="nav navbar-nav navbar-right">
+					<li><a href="http://127.0.0.1:8090/events2017/login"><span class="glyphicon glyphicon-log-in"></span> Login</a></li>
+				</ul>
+			</div>
+		</div>
+	</nav>
+
+<br>
+<h3> Event Finder </h3>
+
+	<!-- Form for entering searches -->
+	<form id = "form" >
+
+		Keywords:<br>
+		<input type="text" name="search" id = "keywords"> </input><br>
+
+		Date:<br>
+		<input type="date" name="date" id = "date"></input>
+
+		<input type="submit" value="Search" id="Search"></input>
+	</form>
+
+	<!--Table for listing results -->
+	<table id="results">
+	<tbody>
+		<tr>
+			<th>Event Name</th>
+			<th>Date</th>
+			<th>Venue</th>
+		</tr>
+	</tbody>
+
+
+	</table>
+	
+<!--Scripts-->
+	<!--JQUERY-->
+	<script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
+	<!--POPPER.JS-->
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"></script>
+	<!--Bootstrap javascript plugins-->
+	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.3/js/bootstrap.min.js"></script>
+	<!--JS cookie -->
+	<script src = "https://cdn.jsdelivr.net/npm/js-cookie@2/src/js.cookie.min.js"></script>
+
+
+	<!--Searching events.json -->
+		<script type = "text/javascript">
+			$(document).ready(function(){
+				$('#form').submit(function(event){
+					event.preventDefault();
+
+					//here it should erase previous table if it exists
+					//should unhide
+					var keywords = document.getElementById('keywords').value;
+					var date = document.getElementById('date').value;
+
+					$.ajax({
+					//	console("sending ajax GET request");
+						url: "./events/search?",
+						type: "GET",
+						data: {search: keywords, date: date}, //sends query in the format ./events/search?search=keywords&date=date
+						contentType: "application/json; charset=utf-8",
+						dataType: "json",
+						statusCode: {
+							200: function(){
+								console.log("200: OK");
+							}
+						},
+						success: function(data){
+							console.log("Success");
+							var stringOfJSON = JSON.stringify(data);
+							var objectJSON = JSON.parse(stringOfJSON);
+							console.log("JSON string: " + stringOfJSON);
+
+							try{
+								for(var i = 0; i < objectJSON.events.length; i++){
+									var date = new Date(objectJSON.events[i].date);
+									var newResult = "<tr><td>" + objectJSON.events[i].title +"</td><td>" + date.toDateString() +"</td><td>" + objectJSON.events[i].venue.name +"</td></tr>"; //new row in table for each result
+									$('#results').append(newResult);
+								}
+							}
+
+							catch(err){
+								var errorString = objectJSON.error;
+								document.getElementById("results").innerHTML = errorString;
+							}
+
+						},
+
+						error: function(result){
+							console.log(result);
+						}
+					});
+				});
+			});
+		</script>
+
+
+
 </body>
+</html>

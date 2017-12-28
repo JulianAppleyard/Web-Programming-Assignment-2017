@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<!-- Meta Tags -->
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+	<!-- Boostrap core CSS -->
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+
+	<title> Log In</title>
+</head>
+<body>
+	<!-- Bootstrap collapsable nav bar-->
+	<nav class="navbar navbar-inverse">
+		<div class="container-fluid">
+			<div class="navbar-header">
+				<button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#myNavbar">
+					<span class="icon-bar"></span>
+					<span class="icon-bar"></span>
+					<span class="icon-bar"></span>
+				</button>
+				<a class="navbar-brand" href="http://127.0.0.1:8090/events2017">Events</a>
+			</div>
+			<div class="collapse navbar-collapse" id = "myNavbar">
+				<ul class="nav navbar-nav">
+					<li><a href="http://127.0.0.1:8090/events2017/index.html">Index</a></li>
+					<li><a href="http://127.0.0.1:8090/events2017/admin.html">Admin</a></li>
+				</ul>
+				<ul class="nav navbar-nav navbar-right">
+					<li><a href="http://127.0.0.1:8090/events2017/login"><span class="glyphicon glyphicon-log-in"></span> Login</a></li>
+				</ul>
+			</div>
+		</div>
+	</nav>
+
+
+
+	<form id = "login" action = http://127.0.0.1:9000/login method = "post">
+		Username:<br>
+		<input type = "text" name ="username" id ="username"> </input><br>
+		Password:<br>
+		<input type = "password" name = "password" id = "password"> </input> <br>
+		<input type = "submit" value = "Log in" id = "logger"></input>
+	</form>
+
+
+
+
+<!--Scripts-->
+	<!--JQUERY-->
+	<script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
+	<!--POPPER.JS-->
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"></script>
+	<!--Bootstrap javascript plugins-->
+	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.3/js/bootstrap.min.js"></script>
+	<!--JS cookie -->
+	<script src = "https://cdn.jsdelivr.net/npm/js-cookie@2/src/js.cookie.min.js"></script>
+
+<!-- Making AJAX POST request to authentication service for login-->
+	<script type = "text/javascript">
+	//Make AJAX POST request to authentication service for login
+	$(document).ready(function(){
+		$('#login').submit(function(event){
+			event.preventDefault();
+
+			var username = document.getElementById('username').value;
+			var password = document.getElementById('password').value;
+
+			$.ajax({
+				url: "http://127.0.0.1:9000/login",
+				type: "POST",
+				crossDomain: true,
+				processdata: false,
+				dataType: "json",
+				headers: {
+					"username": username,
+					"password": password
+				},
+				statusCode: {
+					200: function(){
+						console.log("200: OK");
+					}
+				},
+				success: function(data){
+
+					Cookies.set('token', data.token);
+					console.log("Success. Redirecting to admin.html");
+					window.location = "http://127.0.0.1:8090/events2017/admin.html";
+
+
+				},
+
+				error: function(result){
+					window.alert("Incorrect Username or password");
+					console.log(result);
+				}
+			});
+		});
+	});
+
+</script>
+
+</body>
+</html>
