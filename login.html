@@ -34,20 +34,35 @@
 		</div>
 	</nav>
 
+	<!--Bootstrap grid system-->
+	<div class="row">
+		<div class = "col-md-3">
+		</div>
+		<div class="container">
+			<div class = "col-md-6">
+				<form id = "login" action = http://127.0.0.1:9000/login method = "post">
+					<div class="input-group">
+						<span class="input-group-addon"><i class="glyphicon glyphicon-user"></i></span>
+						<input class="input-lg" type = "text" name ="username" id ="username" placeholder="Username"> </input><br>
+					</div>
+					<div class="input-group">
+						<span class = "input-group-addon"><i class="glyphicon glyphicon-lock"></i></span>
+						<input class="input-lg" type = "password" name = "password" id = "password" placeholder="Password"> </input>
+					</div>
+					<div class="input-group">
+						<input class="btn-block" type = "submit" value = "Log in" id = "logger"></input>
+					</div>
+				</form>
+			</div>
+		</div>
+		<div class = "col-md-3">
+		</div>
+	</div>
 
 
-	<form id = "login" action = http://127.0.0.1:9000/login method = "post">
-		Username:<br>
-		<input type = "text" name ="username" id ="username"> </input><br>
-		Password:<br>
-		<input type = "password" name = "password" id = "password"> </input> <br>
-		<input type = "submit" value = "Log in" id = "logger"></input>
-	</form>
 
 
-
-
-<!--Scripts-->
+<!--Scripts and Libraries-->
 	<!--JQUERY-->
 	<script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
 	<!--POPPER.JS-->
@@ -84,7 +99,7 @@
 				},
 				success: function(data){
 
-					Cookies.set('token', data.token);
+					Cookies.set('token', "JWT " + data.token);
 					console.log("Success. Redirecting to admin.html");
 					window.location = "http://127.0.0.1:8090/events2017/admin.html";
 

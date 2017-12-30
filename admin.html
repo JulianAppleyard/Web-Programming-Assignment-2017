@@ -36,38 +36,101 @@
     </div>
   </div>
 </nav>
+<h3>Administration</h3>
 
-<br>
-	<h3>Administration</h3>
+<!--Bootstrap grid system-->
 
-	<!-- Form for searching events.json -->
-	<form id = "form" >
-		Keywords:<br>
-		<input type="text" name="search" id = "keywords"> </input><br>
+<div class="row">
+	<!--First row is for finding and displaying events (like index.html)-->
+	<div class ="col-md-4">
+		<!-- Form for entering searches -->
+		<div class="container">
+			<h3> Event Finder </h3>
+			<form id = "form" class = "form-horizontal" >
+				<div class="input-group">
+					<!--label class="form-control" for="keywords">Search Terms:</label-->
+					<input type="text" name="search" id = "keywords" class="form-control" placeholder="Search Terms"> </input>
+				</div>
+				<div class="input-group">
+					<!--label class="form-control" for="date">Date:</label-->
+					<input type="date" name="date" id = "date" class="form-control"></input>
+				</div>
+				<div class="input-group">
+					<input type="submit" value="Find Events" id="Search" class="form-control"></input>
+				</div>
+			</form>
+		</div>
+	</div>
+	<div class = "col-md-8">
+		<!--Table for listing results -->
+		<div class="table-responsive container">
+			<h3>Event Results</h3>
+			<table class = "table table-striped" id="results">
+				<tbody>
+					<!--Results go here-->
+				</tbody>
+			</table>
+		</div>
+	</div>
+</div>
 
-		Date:<br>
-		<input type="date" name="date" id = "date"></input>
+<div class="row">
+	<!--Placeholder for listing and adding venues-->
+	<div class = "col-md-4">
+		<!-- Form for adding venues-->
+		<div class="container col-md-4">
+			<h3> Venue Adder </h3>
+			<form id = "venueAdd" class = "form-inline">
+				<div class="input-group">
+					<input type="text" name="name" class="form-control" id="venuename"placeholder="Venue Name"></input>
+				</div>
+				<div class="input-group">
+					<input type="text" name="postcode" class="form-control" id= "postcode" placeholder="Postcode"></input>
+				</div>
+				<div class="input-group">
+					<input type="text" name="town" class="form-control" id ="town" placeholder="Town"></input>
+				</div>
+				<div class="input-group">
+					<input type="text" name="url" class="form-control" id="url"placeholder="Url"></input>
+				</div>
+				<div class="input-group">
+					<input type="text" name="icon" class="form-control" id="icon" placeholder="Icon Url"></input>
+				</div>
+				<div class="input-group">
+					<input type="submit" value="Add Venue" class="form-control btn btn-primary "></input>
+				</div>
+				<br>
+				<div class="input-group">
+					<button type="button" id="venueList" class= "btn btn-info btn-lg">List Venues</button>
+				</div>
+		</div>
+	</div>
+	<div class = "col-md-8">
+		<div class="table-responsive container">
+			<h3>All Venues</h3>
+			<table class = "table table-striped" id="vresults">
+				<tbody>
+					<!--Results go here-->
+				</tbody>
+			</table>
+		</div>
+	</div>
+</div>
+<div class="row">
+	<!--Placeholder for adding events to a seleccted venue-->
+	<div class = "col">
+	</div>
+	<div class = "col">
+	</div>
+</div>
 
-		<input type="submit" value="Search" id="Search"></input>
-	</form>
-
-
-	<table id="results">
-	<tbody>
-		<tr>
-			<th>Event Name</th>
-			<th>Date</th>
-			<th>Venue</th>
-		</tr>
-	</tbody>
-
-	</table>
 
 
 
 
 
-<!--Scripts-->
+
+<!--Scripts and Libraries-->
 	<!--JQUERY-->
 	<script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
 	<!--POPPER.JS-->
@@ -78,15 +141,134 @@
 	<script src = "https://cdn.jsdelivr.net/npm/js-cookie@2/src/js.cookie.min.js"></script>
 
 
-<!--If auth_token is not defined, forward to a login page-->
+<!--If auth_token is not defined, forward to a login page. If it is defined, make AJAX GET request to see if it is valid.-->
+<!-- If the auth_token is not valid, forward to login page-->
 	<script type = "text/javascript">
 		$(document).ready(function(){
-			var token = Cookies.get('token');
-			if(!token){
-				window.location.replace("http://127.0.0.1:8090/events2017/login");
-			}
+			$("#venueAdd").submit(function(event){
+				event.preventDefault();
 
-		})
+				var token = Cookies.get('token');
+				if(!token){
+					window.location.replace("http://127.0.0.1:8090/events2017/login");
+				}
+
+				// Make GET request to authentication service. Redirect to login if authentication fails.
+				// Maybe this is not meant to be handled here? Is it only meant to be handled in the app.js
+				//
+
+				$.ajax({
+					url: "http://127.0.0.1:9000/authenticate",
+					type: "GET",
+					crossDomain: true,
+					processdata: false,
+					dataType: "json",
+					headers:{
+						"authorization": token
+					},
+					statusCode:{
+						200: function(){
+							console.log("Server responded wtih 200: OK");
+						},
+						400: function(){
+							console.log("400: Not Authorized");
+						}
+					},
+					success: function(data){
+						console.log("token validated: " + token);
+					},
+					error: function(result){
+						console.log("authentication failed");
+						console.log(result);
+						window.location.replace("http://127.0.0.1:8090/events2017/login");
+					}
+				});
+
+
+				// Make POST request when submitting the form to add a venue to the list of venues
+				// Could regex this but eh
+				//
+				var name = document.getElementById("venuename");
+				var postcode = document.getElementById("postcode");
+				var town = document.getElementById("town");
+				var url = document.getElementById("url");
+				var icon = document.getElementById("icon");
+
+				$.ajax({
+					url: "./venues/add",
+					type: "POST",
+					data:{
+						"auth_token": token,
+						"name": name,
+						"postcode": postcode,
+						"town": town,
+						"url": url,
+						"icon": icon
+					},
+					statusCode:{
+						200: function(){
+							console.log("Venue added: Server responded with 200: OK");
+						},
+						400: function(){
+							console.log("Venue not added, bad request");
+						},
+						401: function(){
+							console.log("Venue not added, not authorized");
+						}
+					},
+					success: function(data){
+						console.log(data);
+						console.log("Successfully added");
+						window.alert("Venue added successfully. Click 'List Venues' to see updated list of venues");
+					},
+					error: function(result){
+						console.log(result);
+						window.alert("Venue not added");
+					}
+				});
+
+			});
+
+			$('#venueList').click(function(event){
+				event.preventDefault();
+				// Make GET request to main application service to retrive venues and list the in a table
+				//
+				$(".vremove").remove();
+				$.ajax({
+					url: "./venues",
+					type: "GET",
+					cpntentType: "application/json; charset=utf-8",
+					dataType: "json",
+					statusCode: {
+						200: function(){
+							console.log("200: OK")
+						}
+					},
+					success: function(data){
+						console.log("Success");
+						var stringOfJSON = JSON.stringify(data);
+						var objectJSON = JSON.parse(stringOfJSON);
+
+						var length = Object.keys(objectJSON.venues).length;
+						try{
+							$('#vresults').append("<tr class='vremove'><th>ID</th><th>Venue Name</th><th>Postcode</th>");
+							for(var i=0; i <= length; i ++){
+								var venue_id = "v_" + (i+1);
+								var current = objectJSON.venues[venue_id];
+								// Why does this give TypeError "cannot read property 'name' of undefined"?
+								var newResult = "<tr class='vremove'><td>" + venue_id + "</td><td>" + current.name +"</td><td>"+ current.postcode +"</td></tr>";
+								$("#vresults").append(newResult);
+							}
+						}
+						catch(err){
+							console.log(err);
+							var errorString = objectJSON.error;
+							//document.getElementById("vresults").innerHTML = errorString;
+						}
+					}
+				});
+			})
+		});
 	</script>
 
 <!-- MAke AJAX GET request to app.js for events list/response-->
@@ -96,13 +278,14 @@
 			$('#form').submit(function(event){
 				event.preventDefault();
 
-				//here it should erase previous table if it exists
-				//should unhide
+				// Here it should erase previous table if it exists
+				//
+				$(".remove").remove();
+
 				var keywords = document.getElementById('keywords').value;
 				var date = document.getElementById('date').value;
 
 				$.ajax({
-				//	console("sending ajax GET request");
 					url: "./events/search?",
 					type: "GET",
 					data: {search: keywords, date: date}, //sends query in the format ./events/search?search=keywords&date=date
@@ -117,12 +300,15 @@
 						console.log("Success");
 						var stringOfJSON = JSON.stringify(data);
 						var objectJSON = JSON.parse(stringOfJSON);
-						console.log("JSON string: " + stringOfJSON);
+					//	console.log("JSON string: " + stringOfJSON);
 
 						try{
+							$('#results').append("<tr class='remove'><th class='remove'>Event Name</th><th class='remove'>Date</th><th class='remove'>Venue</th></tr>");
 							for(var i = 0; i < objectJSON.events.length; i++){
 								var date = new Date(objectJSON.events[i].date);
-								var newResult = "<tr><td>" + objectJSON.events[i].title +"</td><td>" + date.toDateString() +"</td><td>" + objectJSON.events[i].venue.name +"</td></tr>"; //new row in table for each result
+								//New row in the table for each result
+								//
+								var newResult = "<tr class='remove'><td class='remove'>" + objectJSON.events[i].title +"</td><td class='remove'>" + date.toDateString() +"</td><td class='remove'>" + objectJSON.events[i].venue.name +"</td></tr>";
 								$('#results').append(newResult);
 							}
 						}

@@ -3,14 +3,14 @@
 	This web service requires another webservice for authenticating adding events and venues
 
 * Author: Julian Appleyard
-* Version 0.4.3
+* Version 0.6.0
 POST requests now make GET reuqests to authentication service
 
 * TO DO
 // Should I look at better error handling?
 // Is this returning HTTP status codes whenever possible?
 // Make a 404 page that badly formatted url requests are forwarded to
-// Document libraries/ npm modules(?) that are used
+// Document libraries/ npm packages that are used
 // How should login page be handled in this service?
 ///
  **/
@@ -69,65 +69,25 @@ app.get('/events2017/style.css', function(req, resp) {
 /*
 Work in Progress
 needs better event handling
-Stringify Puts spaces between properties and their values for some reason
 
 */
 app.get('/events2017/venues', function (req, resp) {
 
-	var outputString = '"venues":{';
-
-	fs.readFile("./events.json", 'utf8', function(err, data){
+	fs.readFile("./venues.json", 'utf8', function(err, data){
 		if(err) throw err;
 
-		var parsedObj = JSON.parse(data);
-
-		console.log("Length of events array: " + parsedObj.events.length);
 
 
-		outer_loop:
-		for(var i = 0; i < parsedObj.events.length; i++)
-		{
-			console.log("Checking event #" + (i+1));
+		var parsedListJSON = JSON.parse(data);
 
-			var v_id = JSON.stringify(parsedObj.events[i].venue.venue_id);
+		//
+		//
 
-			//need to check if venue already exists in list
-			for(var j = 0; j < i; j++ ){//this checks if we would have already retrieved it
-				var v_jd = parsedObj.events[j].venue.venue_id;
-				console.log(j);
-						if(v_id === v_jd){
-							continue outer_loop;
-					}
-			}
-
-
-
-			vName = parsedObj.events[i].venue.name;
-			vPostcode = parsedObj.events[i].venue.postcode;
-			vTown = parsedObj.events[i].venue.town;
-			vUrl = parsedObj.events[i].venue.url;
-			vIcon = parsedObj.events[i].venue.icon;
-
-
-			//constructing the JSON format for an individual venue
-			var venueString = ':{"name":"' + vName + '","postcode":"' + vPostcode + '","town":"' + vTown +  '","url":"' + vUrl + '","icon":"' + vIcon + '"}';
-			venueString = v_id.concat(venueString);
-			//venueString = "{" + venueString + "}" ;
-
-			if(i != 0) venueString = "," + venueString; //first venue does not have a comma in front, the rest do
-
-		//	console.log(venueString);
-
-			outputString = outputString + venueString;
-
-		}
-		outputString = "{" + outputString + "}}";
-	//	console.log(outputString);
-
-		var outputJSON = JSON.parse(outputString);
-		var formattedOutput = JSON.stringify(outputJSON);
-		console.log(formattedOutput);
-		resp.end(formattedOutput);
+		//
+		//
+		resp.writeHead(200, { 'Content-Type' : 'application/json'});
+		resp.end(JSON.stringify(parsedListJSON));
+		return;
 	});
 });
 
@@ -325,10 +285,6 @@ app.post('/events2017/venues/add', function (req, resp){
 	var notAuthorised = true;
 	var notAllParameters = true;
 
-//TO DO
-// remove this?
-//
-	var validToken = "concertina";
 
 
 // Check for required parameters.

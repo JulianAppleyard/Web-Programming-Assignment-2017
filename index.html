@@ -11,6 +11,8 @@
 	<title>Event Finder</title>
 </head>
 <body>
+
+
 	<!-- Bootstrap collapsable nav bar-->
 	<nav class="navbar navbar-inverse">
 		<div class="container-fluid">
@@ -34,34 +36,83 @@
 		</div>
 	</nav>
 
-<br>
-<h3> Event Finder </h3>
+	<!-- Bootstrap grid system-->
+	<div class="row">
+		<div class ="col-md-4">
+			<!-- Form for entering searches -->
+			<div class="container">
+				<h3> Event Finder </h3>
+				<form id = "form" class = "form-horizontal" >
+					<div class="input-group">
+						<input type="text" name="search" id = "keywords" class="form-control" placeholder="Keywords"> </input><br>
+					</div>
+					<div class="input-group">
+						<input type="date" name="date" id = "date" class="form-control"></input>
+					</div>
+					<div class="input-group">
+						<input type="submit" value="Search" id="Search" class="form-control"></input>
+					</div>
+				</form>
+			</div>
+		</div>
+		<div class = "col-md-8">
+			<!--Table for listing results -->
+			<div class="table-responsive container">
+				<table class = "table table-striped" id="results">
+					<tbody>
+						<!--Results go here-->
+					</tbody>
+				</table>
+			</div>
+		</div>
+	</div>
 
-	<!-- Form for entering searches -->
-	<form id = "form" >
+	<!-- Bootstrap Modal-->
+<div class="container">
+	<div id="myModal" class="modal" role="dialog">
+		<div class="modal-dialog">
+				<!-- Modal content-->
+				<div class="modal-content">
+					<div class="modal-header">
+						<button type="button" class="close" data-dismiss="modal">&times;</button>
+						<h4 class="modal-title">Event Details</h4>
+					</div>
+					<div class="modal-body">
+						<div class="row">
+							<div class="col-sm-6">
+								<ul class="list-group">
+									<li class="list-group-item">Title: <a target = "_blank" id="metitle"></a></li>
+									<li id="meid"class="list-group-item"></li>
+									<li id="medate" class="list-group-item"></li>
+									<li id="meblurb"class="list-group-item"></li>
+									<li id="meurl"class="list-group-item"></li>
+									<li id="meicon"class="list-group-item"></li>
+									<li class="list-group-item"></li>
+								</ul>
+							</div>
+							<div class="col-sm-6">
+								<h4>Venue</h4>
+								<ul class = "list-group">
+									<li class="list-group-item"><a target="_blank" id="mvname"></a></li>
+									<li id="mvid" class="list-group-item"></li>
+									<li id="mvpostcode" class="list-group-item"></li>
+									<li id="mvtown" class="list-group-item"></li>
+									<li id="mvurl" class="list-group-item"></li>
+									<li class="list-group-item"><img  id="mvicon"></img></li>
+								</ul>
 
-		Keywords:<br>
-		<input type="text" name="search" id = "keywords"> </input><br>
-
-		Date:<br>
-		<input type="date" name="date" id = "date"></input>
-
-		<input type="submit" value="Search" id="Search"></input>
-	</form>
-
-	<!--Table for listing results -->
-	<table id="results">
-	<tbody>
-		<tr>
-			<th>Event Name</th>
-			<th>Date</th>
-			<th>Venue</th>
-		</tr>
-	</tbody>
+							</div>
+						</div>
+					</div>
+					<div class="modal-footer">
+						<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+					</div>
+				</div>
+		</div>
+	</div>
+</div>
 
 
-	</table>
-	
 <!--Scripts-->
 	<!--JQUERY-->
 	<script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
@@ -74,13 +125,42 @@
 
 
 	<!--Searching events.json -->
-		<script type = "text/javascript">
+	<script type = "text/javascript">
+
+			var objectJSON =[];
+
+			function getData(i){
+				console.log(objectJSON.events[i]);
+				var date = new Date(objectJSON.events[i].date);
+				// Title is a link to the url
+				//
+				document.getElementById("metitle").innerHTML = objectJSON.events[i].title;
+
+				if(objectJSON.events[i].url){
+					document.getElementById("metitle").href = objectJSON.events[i].url;
+				}
+				document.getElementById("meid").innerHTML = "Event ID: " + objectJSON.events[i].event_id;
+				document.getElementById("meblurb").innerHTML = objectJSON.events[i].blurb;
+				document.getElementById("medate").innerHTML = date.toString();
+
+				document.getElementById("mvname").innerHTML = objectJSON.events[i].venue.name;
+				if(objectJSON.events[i].venue.url){
+					document.getElementById("mvname").href = objectJSON.events[i].venue.url;
+				}
+				document.getElementById("mvid").innerHTML = "Venue ID:" + objectJSON.events[i].venue.venue_id;
+				document.getElementById("mvpostcode").innerHTML = objectJSON.events[i].venue.postcode;
+				document.getElementById("mvtown").innerHTML = objectJSON.events[i].venue.town;
+
+				$("#myModal").modal({backdrop: false});
+			};
+
 			$(document).ready(function(){
 				$('#form').submit(function(event){
 					event.preventDefault();
+					// Here it should erase previous table if it exists
+					//
+					$(".remove").remove();
 
-					//here it should erase previous table if it exists
-					//should unhide
 					var keywords = document.getElementById('keywords').value;
 					var date = document.getElementById('date').value;
 
@@ -99,13 +179,14 @@
 						success: function(data){
 							console.log("Success");
 							var stringOfJSON = JSON.stringify(data);
-							var objectJSON = JSON.parse(stringOfJSON);
-							console.log("JSON string: " + stringOfJSON);
+							objectJSON = JSON.parse(stringOfJSON);
+							//console.log("JSON string: " + stringOfJSON);
 
 							try{
+								$('#results').append("<tr class='remove'><th class='remove'>Event Name</th><th class='remove'>Date</th><th class='remove'>Venue</th></tr>");
 								for(var i = 0; i < objectJSON.events.length; i++){
 									var date = new Date(objectJSON.events[i].date);
-									var newResult = "<tr><td>" + objectJSON.events[i].title +"</td><td>" + date.toDateString() +"</td><td>" + objectJSON.events[i].venue.name +"</td></tr>"; //new row in table for each result
+									var newResult = "<tr onclick='getData("+i+")' class='remove det'><td class='det remove'>" + objectJSON.events[i].title +"</td><td class='remove'>" + date.toDateString() +"</td><td class='remove'>" + objectJSON.events[i].venue.name +"</td></tr>";
 									$('#results').append(newResult);
 								}
 							}
@@ -121,10 +202,11 @@
 							console.log(result);
 						}
 					});
+
 				});
+
 			});
 		</script>
-
 
 
 </body>

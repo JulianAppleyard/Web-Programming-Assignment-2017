@@ -3,7 +3,7 @@
  *  Works with the app.js webservice for searching and adding events
  *  This seperate webservice provides authentication for when a user wishes to add events and venues
  *  Author: Julian Appleyard
- *  Version 0.4.3
+ *  Version 0.6.0
  *
  *  Version Notes:
  *  Neither of the passport strategies are checking for IP address yet (as is set out in requirements)
@@ -11,16 +11,23 @@
  *  This authentication service is still not interacting with the main webservice or admin.html (which it needs to)
  *  Need to implement redirects and change the paths
  */
+// Token valid until Dec 29th 2017 at 17:21:24
+//JWT eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE1MTQ1NjgwODQsImlwIjoiMTI3LjAuMC4xIiwiaWQiOjEsImlhdCI6MTUxNDU2MDg4NH0.JEsHcXycVC4Rh0NgY8ho4Q8QnyUhb3vZAj4Cb69nLvE
+
 var appBASE = "http://127.0.0.1:8090/events2017"
 var _ = require('lodash');
 var express = require('express');
 var bodyParser = require('body-parser');
 var jwt = require('jsonwebtoken');
 
+// Range_Check is a nodejs package to validate IP addresses, check IP address version,
+// check if IP is within a range etc: www.npmjs.com/package/range_check
+//
+var rangeCheck = require('range_check');
 
 
 
-//Use passport js authenticatio middleware: passportjs.org
+// Use passport js authentication middleware: passportjs.org
 //
 var passport = require('passport');
 
@@ -53,14 +60,20 @@ var users = [
 //
 passport.use('tokenBackDoor', new CustomStrategy(
   function(req, next){
-    console.log(req.headers.authorization);
-    if(req.headers.authorization === "concertina"){
+
+    var ipisinRange = rangeCheck.inRange(req.ip, '129.234.0.0/16');
+
+    if(!ipisinRange){
+      console.log("IP is not in secret token range");
+      return next(null, false);
+    }
+    if(req.headers.authorization === "concertina" && ipisinRange){
       next(null, true);
-      console.log("Secret backdoor token accepted");
+      return console.log("Secret backdoor token accepted");
     }
     else{
       console.log("Not using secret backdoor token");
-      next(null, false);
+      return next(null, false);
     }
   }
 ));
@@ -68,27 +81,41 @@ passport.use('tokenBackDoor', new CustomStrategy(
 
 
 // If the token is not "concertina" or is from the incorrect IP address, use this JWT strategy.
-// Tokens should be checked for expiry and for their IP address
+// Tokens should be checked for expiry (lasts 2h) and for their IP address
 //
 var jwtOptions = {}
 jwtOptions.jwtFromRequest = ExtractJwt.fromAuthHeaderWithScheme('jwt');
 jwtOptions.secretOrKey = 'concertina'; // this key is used to generate JWTs
-jwtOptions.expiresIn = "2h";
+jwtOptions.passReqToCallback = true;
+jwtOptions.ignoreExpiration = true; //want to handle exipiration in body below
 
-passport.use('jwt', new JwtStrategy(jwtOptions, function(jwt_payload, next){
-  console.log('payload received', jwt_payload);
-  console.log(next);
-  var user = users[_.findIndex(users, {id:jwt_payload.id})];
+passport.use('jwt', new JwtStrategy(jwtOptions, function(req,jwt_payload, next){
 
-// Checks jwt payload IP address against
-//= jwt_payload.ip
+  console.log('JWT payload received', jwt_payload); //debug
 
+  var expDate = new Date(1000*jwt_payload.exp);
+
+  console.log(expDate); //debug
+
+  var user = users[_.findIndex(users, {id:jwt_payload.id})]; //find if token is associated with a valid user
+  var now = Date.now();
+  var sameIP = (req.ip === jwt_payload.ip);
+
+  if(!sameIP){
+    console.log("Token is not valid for this IP address");
+    return next(null,false, {message: "Token is not valid for this IP address"});
+  }
+
+  if(now > expDate.getTime()){
+    console.log("Token is expired");
+    return next(null,false, {message: 'Token is expired'});
+  }
   if(user){
-    next(null, user);
+    return next(null, user);
   }
   else{
     console.log("Not authorized.");
-    next(null, false);
+    return next(null, false);
   }
 
 }));
@@ -104,13 +131,13 @@ app.use(bodyParser.json());
 //
 app.use(function (req, res, next) {
 
-    // Website you wish to allow to connect
+    // Website to allow to connect
     res.setHeader('Access-Control-Allow-Origin', '*');
 
-    // Request methods you wish to allow
+    // Request methods to allow
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST');
 
-    // Request headers you wish to allow
+    // Request headers to allow
     res.setHeader('Access-Control-Allow-Headers', '*');
 
     // Set to true if you need the website to include cookies in the requests sent
@@ -152,8 +179,15 @@ app.post("/login", function(req, resp) {
     resp.status(401).json({message:"no such user found"});
   }
   if(user.password === password){
-//maybe expiration needs to be set here
-    var payload = {ip: req.ip, id: user.id};
+
+// The expiration date (exp) is recorded in seconds since the epoch
+// Date.now() outputs in milliseconds since the epoch, so divide by 1000 to get seconds
+//
+    var payload = {
+      exp: Math.floor(Date.now() / 1000) + (120*60), //add 2 hours worth of seconds
+      ip: req.ip,
+      id: user.id
+    };
     var token = jwt.sign(payload, jwtOptions.secretOrKey);
     console.log("Authentication Successful. Token produced");
     resp.json({message: "ok", token: token});
@@ -166,7 +200,7 @@ app.post("/login", function(req, resp) {
 // Takes an auth_token and an IP address and returns whether or not the token is valid
 // the auth_token "concertina" should be valid for all atimes for IP addresses 129.234.xxx.yyy
 //
-app.get("/events2017/authenticate", passport.authenticate(['jwt', 'tokenBackDoor'],{session: false }), function(req, resp){
+app.get("/authenticate", passport.authenticate(['tokenBackDoor', 'jwt'],{session: false }), function(req, resp){
 
     console.log(req.ip);
     console.log("Request authenticated");

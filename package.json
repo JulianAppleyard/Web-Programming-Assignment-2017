@@ -1,8 +1,8 @@
 {
   "name": "web-programming-assignment-2017",
-  "version": "0.3.0",
+  "version": "0.5.0",
   "description": "Locally hosted nodejs web service for events",
-  "main": "node.js",
+  "main": "app.js",
   "dependencies": {
     "body-parser": "^1.18.2",
     "express": "^4.16.2",
@@ -11,10 +11,12 @@
     "jsonwebtoken": "^8.1.0",
     "jwt-simple": "^0.5.1",
     "lodash": "^4.17.4",
+    "nodemon": "^1.14.6",
     "passport": "^0.4.0",
     "passport-custom": "^1.0.5",
     "passport-jwt": "^3.0.1",
     "passport-local": "^1.0.0",
+    "range_check": "^1.4.0",
     "request": "^2.83.0"
   },
   "devDependencies": {},
