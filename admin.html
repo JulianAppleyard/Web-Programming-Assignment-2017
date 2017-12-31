@@ -36,43 +36,8 @@
     </div>
   </div>
 </nav>
-<h3>Administration</h3>
-
 <!--Bootstrap grid system-->
-
-<div class="row">
-	<!--First row is for finding and displaying events (like index.html)-->
-	<div class ="col-md-4">
-		<!-- Form for entering searches -->
-		<div class="container">
-			<h3> Event Finder </h3>
-			<form id = "form" class = "form-horizontal" >
-				<div class="input-group">
-					<!--label class="form-control" for="keywords">Search Terms:</label-->
-					<input type="text" name="search" id = "keywords" class="form-control" placeholder="Search Terms"> </input>
-				</div>
-				<div class="input-group">
-					<!--label class="form-control" for="date">Date:</label-->
-					<input type="date" name="date" id = "date" class="form-control"></input>
-				</div>
-				<div class="input-group">
-					<input type="submit" value="Find Events" id="Search" class="form-control"></input>
-				</div>
-			</form>
-		</div>
-	</div>
-	<div class = "col-md-8">
-		<!--Table for listing results -->
-		<div class="table-responsive container">
-			<h3>Event Results</h3>
-			<table class = "table table-striped" id="results">
-				<tbody>
-					<!--Results go here-->
-				</tbody>
-			</table>
-		</div>
-	</div>
-</div>
+<h3>Administration</h3>
 
 <div class="row">
 	<!--Placeholder for listing and adding venues-->
@@ -82,7 +47,7 @@
 			<h3> Venue Adder </h3>
 			<form id = "venueAdd" class = "form-inline">
 				<div class="input-group">
-					<input type="text" name="name" class="form-control" id="venuename"placeholder="Venue Name"></input>
+					<input type="text" name="name" class="form-control" id="venuename"placeholder="Venue Name (required)"></input>
 				</div>
 				<div class="input-group">
 					<input type="text" name="postcode" class="form-control" id= "postcode" placeholder="Postcode"></input>
@@ -103,12 +68,12 @@
 				<div class="input-group">
 					<button type="button" id="venueList" class= "btn btn-info btn-lg">List Venues</button>
 				</div>
+			</form>
 		</div>
 	</div>
-	<div class = "col-md-8">
-		<div class="table-responsive container">
-			<h3>All Venues</h3>
-			<table class = "table table-striped" id="vresults">
+	<div class = "col-md-8 container-fluid">
+		<div class="table-responsive">
+			<table class = "table table-striped table-hover" id="vresults">
 				<tbody>
 					<!--Results go here-->
 				</tbody>
@@ -116,15 +81,70 @@
 		</div>
 	</div>
 </div>
-<div class="row">
-	<!--Placeholder for adding events to a seleccted venue-->
-	<div class = "col">
-	</div>
-	<div class = "col">
+
+
+<!-- Bootstrap Modal-->
+<div class="container">
+<div id="myModal" class="modal" role="dialog">
+	<div class="modal-dialog modal-lg">
+			<!-- Modal content-->
+			<div class="modal-content">
+				<div class="modal-header">
+					<button type="button" class="close" data-dismiss="modal">&times;</button>
+					<h4 class="modal-title">Venue Details</h4>
+				</div>
+				<div class="modal-body">
+					<div class="row">
+
+						<!-- First column is the details of the specific venue-->
+						<div class="col-sm-6">
+							<ul class = "list-group">
+								<li class="list-group-item"><a target="_blank" id="mvname"></a><img hidden height="42" width ="42" id="mvicon"></img></li>
+								<li id="mvid" class="list-group-item"></li>
+								<li id="mvpostcode" class="list-group-item"></li>
+								<li id="mvtown" class="list-group-item"></li>
+							</ul>
+						</div>
+
+						<!-- Second column is the form to add an event to that venue-->
+							<div class="col-sm-6">
+								<!--Form here-->
+								<!--<button class="btn btn-default" data-toggle="collapse" data-target="#form">Add an event to this venue</button>-->
+									<h4 class="text-center">Add an event to this venue</h4>
+
+									<form id="eventAdd" class="form-horizontal">
+										<div class="input-group">
+											<input type="text" id="title" class="form-control" placeholder="Event Title"></input>
+										</div>
+										<div class="input-group">
+											<input type="text" id="event_id" class="form-control" placeholder="Event ID"></input>
+										</div>
+										<div class="input-group">
+											<input type="date" name="date" id = "date" class="form-control"></input>
+										</div>
+										<div>
+											<input type="text" id="eventUrl" class="form-control" placeholder="URL (optional)"></input>
+										</div>
+										<div>
+											<input type="text" id="blurb" class="form-control" placeholder="Short Description (optional)"></input>
+										</div>
+										<div>
+											<input type="submit" value="Create Event" class="btn btn-primary"></input>
+										</div>
+								</form>
+
+							</div>
+
+						</div>
+					</div>
+					<div class="modal-footer">
+						<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+					</div>
+				</div>
+
+			</div>
 	</div>
 </div>
-
-
 
 
 
@@ -144,17 +164,54 @@
 <!--If auth_token is not defined, forward to a login page. If it is defined, make AJAX GET request to see if it is valid.-->
 <!-- If the auth_token is not valid, forward to login page-->
 	<script type = "text/javascript">
+	var objectJSON = [];
+
+// This function runs when a table row is clicked and displays the bootstrap modal with the details of the clicked venue
+//
+function getVData(i){
+	try{
+		var id = "v_"+i;
+		console.log(id);
+		console.log(objectJSON.venues[id].name);
+		document.getElementById("mvname").innerHTML = objectJSON.venues[id].name;
+		if(objectJSON.venues[id].url){
+			document.getElementById("mvname").href = objectJSON.venues[id].url;
+		}
+		document.getElementById("mvid").innerHTML = "Venue ID: " + id;
+		document.getElementById("mvpostcode").innerHTML = objectJSON.venues[id].postcode;
+		document.getElementById("mvtown").innerHTML = objectJSON.venues[id].town;
+		if(objectJSON.venues[id].icon){
+			document.getElementById("mvicon").src = objectJSON.venues[id].icon;
+			document.getElementById("mvicon").hidden = false;
+		}
+		$("#myModal").modal({backdrop: false});
+	}
+	catch(err){
+		console.log(err);
+}
+};
+
 		$(document).ready(function(){
+
+			// Will redirect if the authentication token is not defined (ie is empty string/undefined)
+			//
+			var token = Cookies.get('token');
+			if(!token){
+				window.location.replace("http://127.0.0.1:8090/events2017/login");
+			}
+
+			// On submitting of the new Venue form, this will check with the authentication service and then make the POST request to the main web service
+			// The main webservice will respond with the venue data which will be put into objectJSON.
+			// ID, title and Postcode will be recorded in the table for each venue
+			//
+
 			$("#venueAdd").submit(function(event){
 				event.preventDefault();
 
-				var token = Cookies.get('token');
-				if(!token){
-					window.location.replace("http://127.0.0.1:8090/events2017/login");
-				}
+
 
 				// Make GET request to authentication service. Redirect to login if authentication fails.
-				// Maybe this is not meant to be handled here? Is it only meant to be handled in the app.js
+				// Maybe this is not meant to be handled here? Is it only meant to be handled in the app.js?
 				//
 
 				$.ajax({
@@ -185,14 +242,14 @@
 				});
 
 
-				// Make POST request when submitting the form to add a venue to the list of venues
+				// Make POST request when submitting the form to add a venue to venues.json
 				// Could regex this but eh
 				//
-				var name = document.getElementById("venuename");
-				var postcode = document.getElementById("postcode");
-				var town = document.getElementById("town");
-				var url = document.getElementById("url");
-				var icon = document.getElementById("icon");
+				var name = document.getElementById("venuename").value;
+				var postcode = document.getElementById("postcode").value;
+				var town = document.getElementById("town").value;
+				var url = document.getElementById("url").value;
+				var icon = document.getElementById("icon").value;
 
 				$.ajax({
 					url: "./venues/add",
@@ -217,21 +274,24 @@
 						}
 					},
 					success: function(data){
-						console.log(data);
 						console.log("Successfully added");
 						window.alert("Venue added successfully. Click 'List Venues' to see updated list of venues");
 					},
 					error: function(result){
 						console.log(result);
-						window.alert("Venue not added");
 					}
 				});
 
 			});
 
+
+
+// Make GET request to main app.js service to list venues in a table
+//
 			$('#venueList').click(function(event){
 				event.preventDefault();
-				// Make GET request to main application service to retrive venues and list the in a table
+
+				// Remove previous table results if they are there
 				//
 				$(".vremove").remove();
 				$.ajax({
@@ -247,31 +307,79 @@
 					success: function(data){
 						console.log("Success");
 						var stringOfJSON = JSON.stringify(data);
-						var objectJSON = JSON.parse(stringOfJSON);
+						objectJSON = JSON.parse(stringOfJSON);
 
 						var length = Object.keys(objectJSON.venues).length;
+						var loopObject = objectJSON.venues
 						try{
 							$('#vresults').append("<tr class='vremove'><th>ID</th><th>Venue Name</th><th>Postcode</th>");
 							for(var i=0; i <= length; i ++){
 								var venue_id = "v_" + (i+1);
-								var current = objectJSON.venues[venue_id];
-								// Why does this give TypeError "cannot read property 'name' of undefined"?
-								var newResult = "<tr class='vremove'><td>" + venue_id + "</td><td>" + current.name +"</td><td>"+ current.postcode +"</td></tr>";
+								var current =loopObject[venue_id];
+
+								var newResult = "<tr onclick = 'getVData("+(i+1)+")' class='vremove' style='cursor: pointer'><td>" + venue_id + "</td><td>" + current.name +"</td><td>"+ current.postcode +"</td></tr>";
 								$("#vresults").append(newResult);
 							}
 						}
 						catch(err){
+							if(err instanceof TypeError){
+								// Why does the above give TypeError "cannot read property 'name' of undefined"?
+								//
+							}
+							else{
 							console.log(err);
 							var errorString = objectJSON.error;
-							//document.getElementById("vresults").innerHTML = errorString;
+							var newResult ="<tr class= 'remove'><td>"+ errorString+"</td></tr>";
+							$("#vresults").append(newResult);
+							}
+							console.log(err);
 						}
 					}
 				});
-			})
+			});
+
+// Make a POST request to main app.js service to attempt to add a new event to events.json
+			$('#eventAdd').submit(function(event){
+				event.preventDefault();
+				var title = $('#title').val();
+				console.log(title);
+				var event_id = $('#event_id').val();
+				var date = $('#date').val();
+				var eventUrl = $('#eventUrl').val();
+				var blurb = $('#blurb').val();
+				var venue_id = document.getElementById('mvid').innerHTML.slice(10); //slice after 10 because innerHTML has "Venue ID: " + venue_id
+				//token has already been found
+
+				$.ajax({
+					url: "./events/add",
+					type: "POST",
+					data:{
+						"auth_token": token,
+						"event_id": event_id,
+						"title": title,
+						"venue_id": venue_id,
+						"date": date,
+						"url": eventUrl,
+						"blurb": blurb
+					},
+					statusCode:{
+						200: function(){
+							console.log("Event added successfully");
+						}
+					},
+					success: function(data){
+						console.log("Successfully added");
+						window.alert("Event added successfully. To find update list of events visit the 'index' page");
+					},
+					error: function(result){
+						console.log(result);
+					}
+				});
+			});
 		});
 	</script>
 
-<!-- MAke AJAX GET request to app.js for events list/response-->
+<!-- MAke AJAX GET request to app.js for events list/response
 	<script type = "text/javascript">
 
 		$(document).ready(function(){
@@ -328,7 +436,7 @@
 		});
 
 	</script>
-
+-->
 
 </body>
 </html>

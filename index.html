@@ -41,24 +41,24 @@
 		<div class ="col-md-4">
 			<!-- Form for entering searches -->
 			<div class="container">
-				<h3> Event Finder </h3>
+				<h3> Search for an Event </h3>
 				<form id = "form" class = "form-horizontal" >
 					<div class="input-group">
-						<input type="text" name="search" id = "keywords" class="form-control" placeholder="Keywords"> </input><br>
+						<input type="text" name="search" id = "keywords" class="form-control" placeholder="Search Terms"> </input><br>
 					</div>
 					<div class="input-group">
 						<input type="date" name="date" id = "date" class="form-control"></input>
 					</div>
 					<div class="input-group">
-						<input type="submit" value="Search" id="Search" class="form-control"></input>
+						<input type="submit" value="Find Events" id="Search" class="form-control btn btn-primary"></input>
 					</div>
 				</form>
 			</div>
 		</div>
 		<div class = "col-md-8">
 			<!--Table for listing results -->
-			<div class="table-responsive container">
-				<table class = "table table-striped" id="results">
+			<div class="table-responsive">
+				<table class = "table table-striped table-hover" id="results">
 					<tbody>
 						<!--Results go here-->
 					</tbody>
@@ -81,24 +81,19 @@
 						<div class="row">
 							<div class="col-sm-6">
 								<ul class="list-group">
-									<li class="list-group-item">Title: <a target = "_blank" id="metitle"></a></li>
+									<li class="list-group-item"><a target = "_blank" id="metitle"></a><img hidden id="meicon" height="42" width="42"></img></li>
 									<li id="meid"class="list-group-item"></li>
 									<li id="medate" class="list-group-item"></li>
 									<li id="meblurb"class="list-group-item"></li>
-									<li id="meurl"class="list-group-item"></li>
-									<li id="meicon"class="list-group-item"></li>
-									<li class="list-group-item"></li>
 								</ul>
 							</div>
 							<div class="col-sm-6">
 								<h4>Venue</h4>
 								<ul class = "list-group">
-									<li class="list-group-item"><a target="_blank" id="mvname"></a></li>
+									<li class="list-group-item"><a target="_blank" id="mvname"></a><img hidden height="42" width ="42" id="mvicon"></img></li>
 									<li id="mvid" class="list-group-item"></li>
 									<li id="mvpostcode" class="list-group-item"></li>
 									<li id="mvtown" class="list-group-item"></li>
-									<li id="mvurl" class="list-group-item"></li>
-									<li class="list-group-item"><img  id="mvicon"></img></li>
 								</ul>
 
 							</div>
@@ -129,31 +124,46 @@
 
 			var objectJSON =[];
 
+// This function runs when a table row is clicked
+// it displays the details of the event and its venue in a bootstrap modal
+//
 			function getData(i){
 				console.log(objectJSON.events[i]);
 				var date = new Date(objectJSON.events[i].date);
 				// Title is a link to the url
 				//
-				document.getElementById("metitle").innerHTML = objectJSON.events[i].title;
+				document.getElementById("metitle").innerHTML = objectJSON.events[i].title + "			";
 
 				if(objectJSON.events[i].url){
 					document.getElementById("metitle").href = objectJSON.events[i].url;
 				}
 				document.getElementById("meid").innerHTML = "Event ID: " + objectJSON.events[i].event_id;
-				document.getElementById("meblurb").innerHTML = objectJSON.events[i].blurb;
+				document.getElementById("meblurb").innerHTML = "Description: " + objectJSON.events[i].blurb;
 				document.getElementById("medate").innerHTML = date.toString();
+				if(objectJSON.events[i].icon){
+					document.getElementById("meicon").src = objectJSON.events[i].icon;
+					document.getElementById("meicon").hidden = false;
+				}
+
 
 				document.getElementById("mvname").innerHTML = objectJSON.events[i].venue.name;
 				if(objectJSON.events[i].venue.url){
 					document.getElementById("mvname").href = objectJSON.events[i].venue.url;
 				}
-				document.getElementById("mvid").innerHTML = "Venue ID:" + objectJSON.events[i].venue.venue_id;
+				document.getElementById("mvid").innerHTML = "Venue ID: " + objectJSON.events[i].venue.venue_id;
 				document.getElementById("mvpostcode").innerHTML = objectJSON.events[i].venue.postcode;
 				document.getElementById("mvtown").innerHTML = objectJSON.events[i].venue.town;
+				if(objectJSON.events[i].venue.icon){
+					document.getElementById("mvicon").src = objectJSON.events[i].venue.icon;
+					document.getElementById("mvicon").hidden = false;
+				}
 
 				$("#myModal").modal({backdrop: false});
 			};
 
+// Make GET request to main app.js service to find events using the keywords and date provided
+// List the results in a table
+//
 			$(document).ready(function(){
 				$('#form').submit(function(event){
 					event.preventDefault();
@@ -186,14 +196,16 @@
 								$('#results').append("<tr class='remove'><th class='remove'>Event Name</th><th class='remove'>Date</th><th class='remove'>Venue</th></tr>");
 								for(var i = 0; i < objectJSON.events.length; i++){
 									var date = new Date(objectJSON.events[i].date);
-									var newResult = "<tr onclick='getData("+i+")' class='remove det'><td class='det remove'>" + objectJSON.events[i].title +"</td><td class='remove'>" + date.toDateString() +"</td><td class='remove'>" + objectJSON.events[i].venue.name +"</td></tr>";
+									var newResult = "<tr onclick='getData("+i+")' style='cursor: pointer' class='remove'><td >" + objectJSON.events[i].title +"</td><td >" + date.toDateString() +"</td><td> " + objectJSON.events[i].venue.name +"</td></tr>";
 									$('#results').append(newResult);
 								}
 							}
 
 							catch(err){
 								var errorString = objectJSON.error;
-								document.getElementById("results").innerHTML = errorString;
+								var newResult = "<tr class= 'remove'> <td> " + errorString + " </td></tr>";
+								$("#results").append(newResult);
+
 							}
 
 						},

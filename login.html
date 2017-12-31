@@ -50,7 +50,7 @@
 						<input class="input-lg" type = "password" name = "password" id = "password" placeholder="Password"> </input>
 					</div>
 					<div class="input-group">
-						<input class="btn-block" type = "submit" value = "Log in" id = "logger"></input>
+						<input class="btn-block btn-primary" type = "submit" value = "Log in" id = "logger"></input>
 					</div>
 				</form>
 			</div>
@@ -99,6 +99,9 @@
 				},
 				success: function(data){
 
+					// Save token as cookie upon successful login
+					// Then redirect to admin.html which can now authenticate this valid tokens
+					//
 					Cookies.set('token', "JWT " + data.token);
 					console.log("Success. Redirecting to admin.html");
 					window.location = "http://127.0.0.1:8090/events2017/admin.html";

@@ -68,8 +68,9 @@ passport.use('tokenBackDoor', new CustomStrategy(
       return next(null, false);
     }
     if(req.headers.authorization === "concertina" && ipisinRange){
-      next(null, true);
-      return console.log("Secret backdoor token accepted");
+      console.log("Secret backdoor token accepted");
+      return next(null, true);
+
     }
     else{
       console.log("Not using secret backdoor token");
@@ -201,7 +202,7 @@ app.post("/login", function(req, resp) {
 // the auth_token "concertina" should be valid for all atimes for IP addresses 129.234.xxx.yyy
 //
 app.get("/authenticate", passport.authenticate(['tokenBackDoor', 'jwt'],{session: false }), function(req, resp){
-
+    
     console.log(req.ip);
     console.log("Request authenticated");
     var jsonSent ={};

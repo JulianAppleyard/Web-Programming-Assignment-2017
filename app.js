@@ -30,6 +30,7 @@ app.use(bodyParser.urlencoded({ extended: true}));
 
 
 
+
 // Make this have links to login page and index.html
 //
 app.get('/events2017/404', function(req, resp) {
@@ -271,7 +272,7 @@ TO DO
 **/
 
 app.post('/events2017/venues/add', function (req, resp){
-
+	console.log("Venue add request received");
 	//Pass POST request parameters into the function
 	//
 	var auth_token = req.body.auth_token;
@@ -326,104 +327,120 @@ app.post('/events2017/venues/add', function (req, resp){
 //Make a GET request to the seperate authentication service (auth.js)
 //
 	var options = {
-		url: "http://127.0.0.1:9000/events2017/authenticate",
+		url: "http://127.0.0.1:9000/authenticate",
 		headers: {
 			'Authorization' : auth_token //authentication service is configured to receive token through header
 		}
-
 	};
 
+	function isJSON(str){
+		try{
+			JSON.parse(str);
+		}
+		catch(e){
+			return false;
+		}
+		return true;
+	}
 
 
-// The request itself is configured to receive a response from the service of "true" stored in the header
-//
-	request.get(options, function(err, resp){
+	// The request itself is configured to receive a response from the service of "true" stored in the header
+	//
+	request.get(options, function(err, res, next){
 		console.log("Attempting to connect to authentication service...");
 		if(err) throw err;
-
 		console.log("Using token: "+ auth_token);
 
-		console.log(resp.headers.validtoken === "true");
+		if(isJSON(res.body)){
+			var jsonBody = JSON.parse(res.body);
 
-		if(resp.headers.validtoken == "true"){
-			notAuthorised = false;
+			if(jsonBody.validToken === true){
+				console.log("token is valid");
+				notAuthorised = false;
+			}
 		}
 
-	// If this main service receives any other response besides "true", it will return an error message
-	// in JSON with an HTTP status code in the header 401 'Unauthorized'
-	//
-		if(notAuthorised){
-				var errorJSON = {};
-				console.log("Token: "+ auth_token +" is incorrect");
-				errorJSON.error = "Not authorised, wrong token";
 
-				resp.writeHead(401, { 'Content-Type': 'application/json'});
-				resp.end(JSON.stringify(errorJSON));
-				return;
-		}
+
+		// If this main service receives any other response besides "true", it will return an error message
+		// in JSON with an HTTP status code in the header 401 'Unauthorized'
+		//
+			if(notAuthorised){
+					var errorJSON = {};
+					errorJSON.error = "Token: "+ auth_token +" is incorrect, expired, or from an invalid IP address";
+					console.log(errorJSON.error);
+
+					resp.writeHead(401, { 'Content-Type': 'application/json'});
+					resp.end(JSON.stringify(errorJSON));
+					return;
+			}
+			else{
+				// Read venues.json and find the venue ID which should be assigned to the new venue when it is added
+				// Should it check to see if the venue already exists? Would it check by name alone? Maybe would prompt user
+				// with similar results to avoid users inputting multiple of the same venue (mutliple of the same venue would end up with the same id)
+				//
+					fs.readFile("./venues.json", 'utf8', function (err, data) {
+						if(err) throw err;
+
+						var venue_id = "v_1"
+						var position = 0;
+						var parsedListJSON = JSON.parse(data);
+
+
+						// Function for determining the length of venues.json
+						//
+							function length(x){
+								return Object.keys(x).length;
+							}
+
+						console.log(length(parsedListJSON.venues));
+
+						// This loop iterates through venues.json (after converted to a javascript object) to find the final venue id
+						// It then assigns the new venue the next ID in sequence (eg final: v_2, next: v_3).
+						// This assumes the venues are stored in sequence and that there are no holes in the list.
+						//
+						for(var i = 0; i < (1 + length(parsedListJSON.venues)); i++) {
+							venue_id = 'v_' + (i + 1);
+							console.log(i);
+							}
+
+						console.log(venue_id);
+
+						// Create a string in JSON for new venue
+						//
+						var newVenue ='{"' + venue_id + '":{"name":"' + name + '","postcode":"' + postcode + '","town":"' + town +  '","url":"' + url + '","icon":"' + icon + '"}}';
+						console.log(newVenue);
+
+						// Convert string to javascript objects
+						//
+						var newVenueJSON = JSON.parse(newVenue);
+
+						// Add new venue to list of venues
+						//
+						parsedListJSON.venues[venue_id] = newVenueJSON[venue_id];
+						var postString = JSON.stringify(parsedListJSON)
+
+						// Overwrite the list of venues to venues.json
+						//
+						fs.writeFile("./venues.json", postString, (err) => {
+							if(err) throw err;
+							console.log("File written");
+						})
+
+						resp.writeHead(200, { 'Content-Type' : 'application/json'});
+						resp.end(postString);
+						return;
+
+
+					});
+			}
 
 	});
 
 
 
-// Read venues.json and find the venue ID which should be assigned to the new venue when it is added
-// Should it check to see if the venue already exists? Would it check by name alone? Maybe would prompt user
-// with similar results to avoid users inputting multiple of the same venue (mutliple of the same venue would end up with the same id)
-//
-	fs.readFile("./venues.json", 'utf8', function (err, data) {
-		if(err) throw err;
-
-		var venue_id = "v_1"
-		var position = 0;
-		var parsedListJSON = JSON.parse(data);
 
 
-		// Function for determining the length of venues.json
-		//
-			function length(x){
-				return Object.keys(x).length;
-			}
-
-		console.log(length(parsedListJSON.venues));
-
-		// This loop iterates through venues.json (after converted to a javascript object) to find the final venue id
-		// It then assigns the new venue the next ID in sequence (eg final: v_2, next: v_3).
-		// This assumes the venues are stored in sequence and that there are no holes in the list.
-		//
-		for(var i = 0; i < (1 + length(parsedListJSON.venues)); i++) {
-			venue_id = 'v_' + (i + 1);
-			console.log(i);
-			}
-
-		console.log(venue_id);
-
-		// Create a string in JSON for new venue
-		//
-		var newVenue ='{"' + venue_id + '":{"name":"' + name + '","postcode":"' + postcode + '","town":"' + town +  '","url":"' + url + '","icon":"' + icon + '"}}';
-		console.log(newVenue);
-
-		// Convert string to javascript objects
-		//
-		var newVenueJSON = JSON.parse(newVenue);
-
-		// Add new venue to list of venues
-		//
-		parsedListJSON.venues[venue_id] = newVenueJSON[venue_id];
-		var postString = JSON.stringify(parsedListJSON)
-
-		// Overwrite the list of venues to venues.json
-		//
-		fs.writeFile("./venues.json", postString, (err) => {
-			if(err) throw err;
-			console.log("File written");
-		})
-
-		resp.writeHead(200, { 'Content-Type' : 'application/json'});
-		resp.end(postString);
-		return;
-
-
-	});
 });
 
 
@@ -508,7 +525,7 @@ app.post('/events2017/events/add', function (req, resp){
 
 // The request itself is configured to receive a response from the service of "true" stored in the header
 //
-	request.get(option, function(err, resp){
+	request.get(options, function(err, resp){
 		console.log("Attmepting to connect to authentication service...");
 
 		if(err) throw err;
@@ -525,7 +542,7 @@ app.post('/events2017/events/add', function (req, resp){
 	// in JSON with an HTTP status code in the header 401 'Unauthorized'
 	//
 		if(notAuthorised){
-			var errJSON = {};
+			var errorJSON = {};
 			console.log("Token: " + auth_token + "is incorrect");
 			errorJSON.error = "Not authorised, wrong token";
 
