@@ -22,7 +22,7 @@
 					<span class="icon-bar"></span>
 					<span class="icon-bar"></span>
 				</button>
-				<a class="navbar-brand" href="http://127.0.0.1:8090/events2017">Events</a>
+				<a class="navbar-brand" href="http://127.0.0.1:8090/events2017/404">Events</a>
 			</div>
 			<div class="collapse navbar-collapse" id = "myNavbar">
 				<ul class="nav navbar-nav">
@@ -128,7 +128,6 @@
 // it displays the details of the event and its venue in a bootstrap modal
 //
 			function getData(i){
-				console.log(objectJSON.events[i]);
 				var date = new Date(objectJSON.events[i].date);
 				// Title is a link to the url
 				//
@@ -144,11 +143,17 @@
 					document.getElementById("meicon").src = objectJSON.events[i].icon;
 					document.getElementById("meicon").hidden = false;
 				}
+				else{
+					document.getElementById("meicon").src = "#";
+				}
 
 
 				document.getElementById("mvname").innerHTML = objectJSON.events[i].venue.name;
 				if(objectJSON.events[i].venue.url){
 					document.getElementById("mvname").href = objectJSON.events[i].venue.url;
+				}
+				else{
+					document.getElementById("mvname").href = "#!";
 				}
 				document.getElementById("mvid").innerHTML = "Venue ID: " + objectJSON.events[i].venue.venue_id;
 				document.getElementById("mvpostcode").innerHTML = objectJSON.events[i].venue.postcode;
