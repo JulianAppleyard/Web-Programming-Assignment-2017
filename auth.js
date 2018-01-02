@@ -3,16 +3,24 @@
  *  Works with the app.js webservice for searching and adding events
  *  This seperate webservice provides authentication for when a user wishes to add events and venues
  *  Author: Julian Appleyard
- *  Version 0.6.0
+ *  Version 1.0.1
  *
  */
 
-var appBASE = "http://127.0.0.1:8090/events2017"
+
+// The Lodash library
+//
 var _ = require('lodash');
+
 var express = require('express');
 var bodyParser = require('body-parser');
+
+// NPM package
+// "An implementation of JSON Web Tokens"
+// www.npmjs.com/package/jsonwebtoken
 var jwt = require('jsonwebtoken');
 
+// NPM package
 // Range_Check is a nodejs package to validate IP addresses, check IP address version,
 // check if IP is within a range etc: www.npmjs.com/package/range_check
 //
@@ -24,12 +32,14 @@ var rangeCheck = require('range_check');
 //
 var passport = require('passport');
 
+// NPM package
 // Passport-jwt is a passport strategy for authenticating with JSON Web Token: www.npmjs.com/package/passport-jwt
 //
 var passportJWT = require('passport-jwt');
 var ExtractJwt = passportJWT.ExtractJwt;
 var JwtStrategy = passportJWT.Strategy;
 
+// NPM package
 // Passport-custom is a passport strategy for authenticating with custom logic: www.npmjs.com/package/passport-custom
 //
 var passportCustom = require('passport-custom');
@@ -89,7 +99,7 @@ passport.use('jwt', new JwtStrategy(jwtOptions, function(req,jwt_payload, next){
 
   var expDate = new Date(1000*jwt_payload.exp);
 
-  console.log(expDate); //debug
+  console.log("Token expires at: " + expDate); //debug
 
   var user = users[_.findIndex(users, {id:jwt_payload.id})]; //find if token is associated with a valid user
   var now = Date.now();
@@ -177,6 +187,7 @@ app.post("/login", function(req, resp) {
 // The expiration date (exp) is recorded in seconds since the epoch
 // Date.now() outputs in milliseconds since the epoch, so divide by 1000 to get seconds
 //
+  
     var payload = {
       exp: Math.floor(Date.now() / 1000) + (120*60), //add 2 hours worth of seconds
       ip: req.ip,

@@ -3,14 +3,20 @@
 	This web service requires another webservice for authenticating adding events and venues
 
 * Author: Julian Appleyard
-* Version 0.6.0
+* Version 1.0.1
+*
 
  **/
 
-
+//Express is a nodejs framework
+// expressjs.com
+//
 var express = require('express');
 var app = express();
 
+// NPM package
+// "Request is designed to be the simplest way possible to make http calls. It supports HTTPS and follows redirects by default."
+// www.npmjs.com/package/request
 var request = require('request');
 
 var http = require('http');

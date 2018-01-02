@@ -8,9 +8,6 @@
 	<!-- Boostrap core CSS -->
 	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
 
-	<!-- Other CSS -->
-
-
 	<title> Admin page</title>
 </head>
 <body>
@@ -383,65 +380,6 @@ function getVData(i){
 			});
 		});
 	</script>
-
-<!-- MAke AJAX GET request to app.js for events list/response
-	<script type = "text/javascript">
-
-		$(document).ready(function(){
-			$('#form').submit(function(event){
-				event.preventDefault();
-
-				// Here it should erase previous table if it exists
-				//
-				$(".remove").remove();
-
-				var keywords = document.getElementById('keywords').value;
-				var date = document.getElementById('date').value;
-
-				$.ajax({
-					url: "./events/search?",
-					type: "GET",
-					data: {search: keywords, date: date}, //sends query in the format ./events/search?search=keywords&date=date
-					contentType: "application/json; charset=utf-8",
-					dataType: "json",
-					statusCode: {
-						200: function(){
-							console.log("200: OK");
-						}
-					},
-					success: function(data){
-						console.log("Success");
-						var stringOfJSON = JSON.stringify(data);
-						var objectJSON = JSON.parse(stringOfJSON);
-					//	console.log("JSON string: " + stringOfJSON);
-
-						try{
-							$('#results').append("<tr class='remove'><th class='remove'>Event Name</th><th class='remove'>Date</th><th class='remove'>Venue</th></tr>");
-							for(var i = 0; i < objectJSON.events.length; i++){
-								var date = new Date(objectJSON.events[i].date);
-								//New row in the table for each result
-								//
-								var newResult = "<tr class='remove'><td class='remove'>" + objectJSON.events[i].title +"</td><td class='remove'>" + date.toDateString() +"</td><td class='remove'>" + objectJSON.events[i].venue.name +"</td></tr>";
-								$('#results').append(newResult);
-							}
-						}
-
-						catch(err){
-							var errorString = objectJSON.error;
-							document.getElementById("results").innerHTML = errorString;
-						}
-
-					},
-
-					error: function(result){
-						console.log(result);
-					}
-				});
-			});
-		});
-
-	</script>
--->
 
 </body>
 </html>
