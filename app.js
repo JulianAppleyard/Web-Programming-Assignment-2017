@@ -4,7 +4,15 @@
 
 * Author: Julian Appleyard
 * Version 0.6.0
+POST requests now make GET reuqests to authentication service
 
+* TO DO
+// Should I look at better error handling?
+// Is this returning HTTP status codes whenever possible?
+// Make a 404 page that badly formatted url requests are forwarded to
+// Document libraries/ npm packages that are used
+// How should login page be handled in this service?
+///
  **/
 
 
@@ -29,6 +37,10 @@ app.get('/events2017/404', function(req, resp) {
 
 	resp.sendFile(__dirname + '/404.html');
 	console.log("Displaying 404 page");
+});
+app.get('/events2017', function(req, resp) {
+	resp.writeHead(200, {'Content-Type': 'application/json'});
+	resp.end('Hello world');
 });
 
 
@@ -73,7 +85,7 @@ app.get('/events2017/venues', function (req, resp) {
 		//
 
 		//
-		console.log("Retriving venues from venues.json");
+		//
 		resp.writeHead(200, { 'Content-Type' : 'application/json'});
 		resp.end(JSON.stringify(parsedListJSON));
 		return;
@@ -125,12 +137,10 @@ app.get('/events2017/events/search', function (req, resp) {
 	fs.readFile("./events.json", 'utf8', function(err, events){
 		if(err) throw err;
 
-
 		var data = JSON.parse(events);
 
 		if(searchQuery === "" && searchDate === ""){ //if no search terms/dates are provided, output all events
 			console.log("No terms provided. Outputting all events.");
-			resp.writeHead(200, { 'Content-Type' : 'application/json'});
 			resp.end(events);
 			return;
 		}
@@ -146,17 +156,18 @@ app.get('/events2017/events/search', function (req, resp) {
 			var titleCheck = false;
 
 			if(searchDate !== ""){ //if user inputs a date, check the date against database
+				console.log("Date is defined:");
 				dateCheck =	(iDate.toDateString() === searchDate.toDateString()); //assigns true if the Date(ignores time) portions match
+				console.log("Date matches: " + searchDate);
 			}
 
+			console.log("Checking event #" + (i+1));
 
 			titleCheck = (stringTitle.includes(searchQuery) && searchQuery != "");
 			//is false when searchQuery is not in the title or when searchQuery is just the empty string
 
 
-// If the title matches, the result will always be displayed. If the date matches, the result will only
-// be displayed if the title also matches or if no title search terms are provided.
-//
+
 			if((searchQuery === "" && dateCheck) || titleCheck){
 				console.log("Found matching event...");
 				//add to output array
@@ -194,10 +205,12 @@ app.get('/events2017/events/search', function (req, resp) {
 
 
 /*
-	If user puts capital E instead of e in id, it will not return the event.
-	(ids are case sensitive)
+If user puts capital E instead of e in id, it will not return the event
 */
-
+/*
+depending on interpretation of requirements, may need to output has an array with
+one event object instead of the object itself
+*/
 app.get('/events2017/events/get/:event_id', function (req, resp) {
 	var search_id = req.params.event_id;
 
@@ -212,17 +225,17 @@ app.get('/events2017/events/get/:event_id', function (req, resp) {
 	fs.readFile("./events.json", 'utf8', function(err, events){
 		if(err) throw err;
 		var data = JSON.parse(events);
-
+		//console.log(data);
 		console.log("Length of events array: " + data.events.length);
 
 		for(var i = 0; i < data.events.length; i++)
 		{
+			console.log("Checking event #" + (i+1));
 
 			if(data.events[i].event_id === search_id){ //iterate through events to find matching id
 
-				console.log("Event found for ID " + data.events[i].event_id);
+				//console.log(data.events[i]);
 				//convert javascript object to string in JSON format
-				//
 				var jsonString = JSON.stringify(data.events[i]);
 
 				jsonString = "{" + '"events":[' + jsonString + "]}";
@@ -260,7 +273,6 @@ TO DO
 
 app.post('/events2017/venues/add', function (req, resp){
 	console.log("Venue add request received");
-
 	//Pass POST request parameters into the function
 	//
 	var auth_token = req.body.auth_token;
@@ -305,14 +317,21 @@ app.post('/events2017/venues/add', function (req, resp){
 	if(notAllParameters){//send 400 code in case of this error
 		var errorJSON = {};
 		errorJSON.error = "Venue not added. A valid authentication token and a venue name must be provided.";
-		console.log(errorJSON.error +"\n");
+
 		resp.writeHead(400, { 'Content-Type': 'application/json'});
 		resp.end(JSON.stringify(errorJSON));
 		return;
 	}
 
 
-
+//Make a GET request to the seperate authentication service (auth.js)
+//
+	var options = {
+		url: "http://127.0.0.1:9000/authenticate",
+		headers: {
+			'Authorization' : auth_token //authentication service is configured to receive token through header
+		}
+	};
 
 	function isJSON(str){
 		try{
@@ -324,46 +343,32 @@ app.post('/events2017/venues/add', function (req, resp){
 		return true;
 	}
 
-	//Make a GET request to the seperate authentication service (auth.js)
-	//
-		var options = {
-			url: "http://127.0.0.1:9000/authenticate",
-			headers: {
-				'Authorization' : auth_token //authentication service is configured to receive token through header
-			}
-		};
 
-	// The request itself is configured to receive a response from the service of "true" stored in a json response in the body (in the case of a valid token)
+	// The request itself is configured to receive a response from the service of "true" stored in the header
 	//
 	request.get(options, function(err, res, next){
 		console.log("Attempting to connect to authentication service...");
-
 		if(err) throw err;
-
 		console.log("Using token: "+ auth_token);
-		console.log("\n");
 
-// When the token is valid, the authentication service sends a JSON response with a key-value pair of "validToken": true
-// when the token is not valid, the authentication service sends a non-JSON response with just the string "Unauthorized"
-//
 		if(isJSON(res.body)){
 			var jsonBody = JSON.parse(res.body);
 
 			if(jsonBody.validToken === true){
-				console.log("Token is valid");
+				console.log("token is valid");
 				notAuthorised = false;
 			}
 		}
 
 
 
-		// If this main service receives any other response besides "true", this POST request will return an error message
+		// If this main service receives any other response besides "true", it will return an error message
 		// in JSON with an HTTP status code in the header 401 'Unauthorized'
 		//
 			if(notAuthorised){
 					var errorJSON = {};
 					errorJSON.error = "Token: "+ auth_token +" is incorrect, expired, or from an invalid IP address";
-					console.log(errorJSON.error + "\n");
+					console.log(errorJSON.error);
 
 					resp.writeHead(401, { 'Content-Type': 'application/json'});
 					resp.end(JSON.stringify(errorJSON));
@@ -388,7 +393,7 @@ app.post('/events2017/venues/add', function (req, resp){
 								return Object.keys(x).length;
 							}
 
-						console.log("The list of venues has a length of: " + length(parsedListJSON.venues));
+						console.log(length(parsedListJSON.venues));
 
 						// This loop iterates through venues.json (after converted to a javascript object) to find the final venue id
 						// It then assigns the new venue the next ID in sequence (eg final: v_2, next: v_3).
@@ -396,13 +401,15 @@ app.post('/events2017/venues/add', function (req, resp){
 						//
 						for(var i = 0; i < (1 + length(parsedListJSON.venues)); i++) {
 							venue_id = 'v_' + (i + 1);
+							console.log(i);
 							}
 
-						console.log("Venue ID for new venue is: " + venue_id);
+						console.log(venue_id);
 
 						// Create a string in JSON for new venue
 						//
 						var newVenue ='{"' + venue_id + '":{"name":"' + name + '","postcode":"' + postcode + '","town":"' + town +  '","url":"' + url + '","icon":"' + icon + '"}}';
+						console.log(newVenue);
 
 						// Convert string to javascript objects
 						//
@@ -417,8 +424,8 @@ app.post('/events2017/venues/add', function (req, resp){
 						//
 						fs.writeFile("./venues.json", postString, (err) => {
 							if(err) throw err;
-							console.log("venues.json overwritten with updated list of venues" + "\n");
-						});
+							console.log("File written");
+						})
 
 						resp.writeHead(200, { 'Content-Type' : 'application/json'});
 						resp.end(postString);
@@ -457,7 +464,7 @@ TO DO
 **/
 
 app.post('/events2017/events/add', function (req, resp){
-	console.log("Event add request received");
+
 	// Pass POST request parameters into the function
 	//
 	var auth_token = req.body.auth_token;
@@ -481,7 +488,7 @@ app.post('/events2017/events/add', function (req, resp){
 // Check if ALL required parameters have values.
 // If any single required parameter is false (likely undefined or empty string), notAllParameters will remain true
 //
-	if(title && auth_token && title && venue_id && date && event_id){
+	if(title && auth_token && title && venue_id && date){
 		notAllParameters = false;
 	}
 
@@ -499,97 +506,79 @@ app.post('/events2017/events/add', function (req, resp){
 	if(notAllParameters){
 		var errorJSON = {};
 		errorJSON.error = "Event not added. A valid authentication token and all required parameters must be provided.";
-		console.log(errorJSON.error + "\n")
+
 		resp.writeHead(400, {'Content-Type': 'application/json'});
 		resp.end(JSON.stringify(errorJSON));
 		return;
 	}
 
 
-
-	function isJSON(str){
-		try{
-			JSON.parse(str);
-		}
-		catch(e){
-			return false;
-		}
-		return true;
-	}
-
-
 	//Make a GET request to the seperate authenticatation (auth.js)
 	//
 	var options = {
-		url:"http://127.0.0.1:9000/authenticate",
+		url:"http://127.0.0.1:9000/events2017/authenticate",
 		headers: {
 			'Authorization' : auth_token //authentication service is configured to receive token through header
 		}
 	};
 
-// This request itself receive a response from the service of "true" stored in a JSON response in the body  in the case of a valid token)
+
+// The request itself is configured to receive a response from the service of "true" stored in the header
 //
-//
-	request.get(options, function(err, data){
+	request.get(options, function(err, resp){
 		console.log("Attmepting to connect to authentication service...");
 
 		if(err) throw err;
 
 		console.log("Using token: " + auth_token);
-		console.log("\n");
 
-		// When the token is valid, the authentication service sends a JSON response with a key-value pair of "validToken": true
-		// when the token is not valid, the authentication service sends a non-JSON response with just the string "Unauthorized"
-		//
-		if(isJSON(data.body)){
-			var jsonBody = JSON.parse(data.body);
-
-			if(jsonBody.validToken === true){
-				console.log("Token is valid");
-				notAuthorised = false;
-			}
+		console.log(resp.headers.validtoken === "true");
+		if(resp.headers.validtoken === "true"){
+			notAuthorised = false;
+			console.log(notAuthorised);
 		}
 
-		// If this main service receives any other response besides "true", this POST request will return an error message
-		// in JSON with an HTTP status code in the header 401 'Unauthorized'
-		//
+	// If this main service receives any other response besides "true", it will return an error message
+	// in JSON with an HTTP status code in the header 401 'Unauthorized'
+	//
 		if(notAuthorised){
 			var errorJSON = {};
-			errorJSON.error = "Token: "+ auth_token +" is incorrect, expired, or from an invalid IP address";
-			console.log(errorJSON.error + "\n");
+			console.log("Token: " + auth_token + "is incorrect");
+			errorJSON.error = "Not authorised, wrong token";
 
 			resp.writeHead(401, { 'Content-Type': 'application/json'});
 			resp.end(JSON.stringify(errorJSON));
 			return;
 		}
 
+	});
 
-		// Read events.json
-		//
-		//
-		fs.readFile("./events.json", 'utf8', function (err, data) {
-			if(err) throw err;
+// Read events.json
+//
+//
+	fs.readFile("./events.json", 'utf8', function (err, data) {
+		if(err) throw err;
 
-			var parsedJSON = JSON.parse(data);
+		var parsedJSON = JSON.parse(data);
 
 
-			// If the user enters an event ID which is already in use, return 400 'Bad Request ' and
-			// an error msessage asking for a resubmission.
-			//
-			for(var i = 0; i < (parsedJSON.events.length); i++){
+ // If the user enters an event ID which is already in use, return 400 'Bad Request ' and
+ // an error msessage asking for a resubmission.
+ //
+		for(var i = 0; i < (parsedJSON.events.length); i++){
 
-				if(parsedJSON.events[i].event_id === event_id){
-					var errorJSON = {};
-					errorJSON.error = "Event ID already in use. Please try again with a new event id.";
-					console.log(errorJSON.error + "\n");
-					resp.writeHead(400, {'Content-Type': 'application/json'});
-					resp.end(JSON.stringify(errorJSON));
-					return;
-				}
+			if(parsedJSON.events[i].event_id === event_id){
+				var errorJSON = {};
+				errorJSON.error = "Event ID already in use. Please try again with a new event id.";
+
+				resp.writeHead(400, {'Content-Type': 'application/json'});
+				resp.end(JSON.stringify(errorJSON));
+				return;
 			}
+		}
 
-		// Reade venues.json to find if the venue ID given in the request is associated with an existing venue
-		//
+// Reade venues.json to find if the venue ID given in the request is associated with an existing venue
+//
 		fs.readFile("./venues.json", 'utf8', function (error, venues) {
 			if(error) throw error;
 
@@ -601,10 +590,12 @@ app.post('/events2017/events/add', function (req, resp){
 			for(var i = 0; i <(2 + length(parsedVenues.venues)); i++){
 				if(Object.keys(parsedVenues.venues)[i] == venue_id){ //finds the ith property of venues.json and compares to the input id
 
+					console.log(Object.keys(parsedVenues.venues)[i]);
 					console.log("Venue Exists! " + venue_id);
 					venueExists = true;
 
 					var venueObj = parsedVenues.venues[venue_id];
+					console.log(venueObj);
 				}
 			}
 
@@ -613,13 +604,14 @@ app.post('/events2017/events/add', function (req, resp){
 			//
 			if(venueExists == false){
 				var errorJSON = {};
+				console.log("Venue does not exist");
 				errorJSON = {};
 				errorJSON.error = "Venue Id does not refer to an existing venue. Please check if the venue id is correct or add the new venue.";
-				console.log(errorJSON.error + "\n");
 				resp.writeHead(400, {'Content-Type': 'application/json'});
 				resp.end(JSON.stringify(errorJSON));
 				return;
 			}
+
 			// Construct a javascript Date object and convert that date to ISO for later comparison
 			//
 			var dateObj = new Date(date);
@@ -655,7 +647,7 @@ app.post('/events2017/events/add', function (req, resp){
 			fs.writeFile("./events.json", stringJSON, (err) => {
 				if(err) throw err;
 
-				console.log("File written" + "\n");
+				console.log("File written");
 			});
 
 			resp.writeHead(200, {'Content-Type':'application/json'});
@@ -663,10 +655,13 @@ app.post('/events2017/events/add', function (req, resp){
 
 			return;
 
-		}); //readFile venues
 
-	}); //readfile events
-}); //request
+		});
+
+
+
+	});
+
 
 });
 
@@ -674,5 +669,5 @@ app.post('/events2017/events/add', function (req, resp){
 // Should this be at the top?
 //
 app.listen(8090, "127.0.0.1", function() {
-	console.log('Main web-service is running and listening at 127.0.0.1:8090. Be sure to also run the authentication service in a seperate console with "node auth.js"'+ "\n");
+	console.log('Server is listening at 127.0.0.1:8090');
 });

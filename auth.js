@@ -5,7 +5,14 @@
  *  Author: Julian Appleyard
  *  Version 0.6.0
  *
+ *  Version Notes:
+ *  Neither of the passport strategies are checking for IP address yet (as is set out in requirements)
+ *  The JwtStrategy needs to issue the auth token for that IP address which makes the post request
+ *  This authentication service is still not interacting with the main webservice or admin.html (which it needs to)
+ *  Need to implement redirects and change the paths
  */
+// Token valid until Dec 29th 2017 at 17:21:24
+//JWT eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE1MTQ1NjgwODQsImlwIjoiMTI3LjAuMC4xIiwiaWQiOjEsImlhdCI6MTUxNDU2MDg4NH0.JEsHcXycVC4Rh0NgY8ho4Q8QnyUhb3vZAj4Cb69nLvE
 
 var appBASE = "http://127.0.0.1:8090/events2017"
 var _ = require('lodash');
@@ -190,12 +197,12 @@ app.post("/login", function(req, resp) {
   }
 });
 
-// This uses two passportjs authenication strategies (defined above)
-// When the token is valid, the authentication service sends a JSON response with a key-value pair of "validToken": true
-// when the token is not valid, the authentication service sends a non-JSON response with just the string "Unauthorized"
+
+// Takes an auth_token and an IP address and returns whether or not the token is valid
+// the auth_token "concertina" should be valid for all atimes for IP addresses 129.234.xxx.yyy
 //
 app.get("/authenticate", passport.authenticate(['tokenBackDoor', 'jwt'],{session: false }), function(req, resp){
-
+    
     console.log(req.ip);
     console.log("Request authenticated");
     var jsonSent ={};
@@ -207,5 +214,5 @@ app.get("/authenticate", passport.authenticate(['tokenBackDoor', 'jwt'],{session
 });
 
 app.listen(9000, "127.0.0.1", function(){
-  console.log("Authentication service running and listening at 127.0.0.1:9000. Be sure to also run the main webserive with 'node app.js'");
+  console.log("Express running");
 });
