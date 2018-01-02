@@ -23,7 +23,7 @@
         <span class="icon-bar"></span>
         <span class="icon-bar"></span>
       </button>
-      <a class="navbar-brand" href="http://127.0.0.1:8090/events2017">Events</a>
+      <a class="navbar-brand" href="http://127.0.0.1:8090/events2017/404">Events</a>
     </div>
     <div class="collapse navbar-collapse" id = "myNavbar">
       <ul class="nav navbar-nav">
@@ -40,14 +40,13 @@
 <h3>Administration</h3>
 
 <div class="row">
-	<!--Placeholder for listing and adding venues-->
 	<div class = "col-md-4">
 		<!-- Form for adding venues-->
 		<div class="container col-md-4">
 			<h3> Venue Adder </h3>
-			<form id = "venueAdd" class = "form-inline">
+			<form id = "venueAdd" class = "form-horizontal">
 				<div class="input-group">
-					<input type="text" name="name" class="form-control" id="venuename"placeholder="Venue Name (required)"></input>
+					<input type="text" name="name" class="form-control" required id="venuename"placeholder="Venue Name (required)"></input>
 				</div>
 				<div class="input-group">
 					<input type="text" name="postcode" class="form-control" id= "postcode" placeholder="Postcode"></input>
@@ -99,7 +98,7 @@
 						<!-- First column is the details of the specific venue-->
 						<div class="col-sm-6">
 							<ul class = "list-group">
-								<li class="list-group-item"><a target="_blank" id="mvname"></a><img hidden height="42" width ="42" id="mvicon"></img></li>
+								<li class="list-group-item"><a target="_blank" id="mvname"></a><img hidden height="50" width ="75" id="mvicon"></img></li>
 								<li id="mvid" class="list-group-item"></li>
 								<li id="mvpostcode" class="list-group-item"></li>
 								<li id="mvtown" class="list-group-item"></li>
@@ -114,13 +113,13 @@
 
 									<form id="eventAdd" class="form-horizontal">
 										<div class="input-group">
-											<input type="text" id="title" class="form-control" placeholder="Event Title"></input>
+											<input type="text" id="title" class="form-control" placeholder="Event Title" required></input>
 										</div>
 										<div class="input-group">
-											<input type="text" id="event_id" class="form-control" placeholder="Event ID"></input>
+											<input type="text" id="event_id" class="form-control" placeholder="Event ID" required></input>
 										</div>
 										<div class="input-group">
-											<input type="date" name="date" id = "date" class="form-control"></input>
+											<input type="date" name="date" id = "date" class="form-control" required></input>
 										</div>
 										<div>
 											<input type="text" id="eventUrl" class="form-control" placeholder="URL (optional)"></input>
@@ -171,11 +170,13 @@
 function getVData(i){
 	try{
 		var id = "v_"+i;
-		console.log(id);
-		console.log(objectJSON.venues[id].name);
 		document.getElementById("mvname").innerHTML = objectJSON.venues[id].name;
 		if(objectJSON.venues[id].url){
 			document.getElementById("mvname").href = objectJSON.venues[id].url;
+		}
+		else{
+			document.getElementById("mvname").href = "#!";
+
 		}
 		document.getElementById("mvid").innerHTML = "Venue ID: " + id;
 		document.getElementById("mvpostcode").innerHTML = objectJSON.venues[id].postcode;
@@ -183,6 +184,9 @@ function getVData(i){
 		if(objectJSON.venues[id].icon){
 			document.getElementById("mvicon").src = objectJSON.venues[id].icon;
 			document.getElementById("mvicon").hidden = false;
+		}
+		else{
+			document.getElementById("mvicon").hidden = true;
 		}
 		$("#myModal").modal({backdrop: false});
 	}
@@ -372,7 +376,8 @@ function getVData(i){
 						window.alert("Event added successfully. To find update list of events visit the 'index' page");
 					},
 					error: function(result){
-						console.log(result);
+						console.log(result.responseJSON.error);
+						window.alert(result.responseJSON.error);
 					}
 				});
 			});
